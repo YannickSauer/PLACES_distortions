@@ -12,7 +12,6 @@ public class EyeTrackingEvent : MonoBehaviour
 
     public static void TriggerEvent(GazeData data)
     {
-        Debug.Log("Triggering event");
         OnDataAvailable?.Invoke(data);
     }
 }

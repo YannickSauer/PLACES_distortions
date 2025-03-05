@@ -65,6 +65,7 @@ public class EyeTrackingManager : MonoBehaviour
     public bool isObjectRecording = false;
     private bool isRecording = false;
     private Thread savingThread; // background thread for writing to files
+
     void Awake()
     {
         // set US culture for number formatting in strings
@@ -95,7 +96,7 @@ public class EyeTrackingManager : MonoBehaviour
 #if USE_VIVE
             case ETProvider.HTCViveSRanipal:
                 // start SRanipal // todo, should be part of the interface I guess ???
-                instance.AddComponent<SRanipal_Eye_Framework>();
+                //instance.AddComponent<SRanipal_Eye_Framework>();
        
                 eyeTracker = new ViveEyeTracker();
                 eyeTracker.Initialize();
@@ -136,7 +137,6 @@ public class EyeTrackingManager : MonoBehaviour
 
         // event handler for gaze data
         EyeTrackingEvent.OnDataAvailable += HandleData; // subscribe to event
-        eyeTracker.StartListening(); // start the background event system
 
         // test Datetime accuracy
         DateTime t1 = DateTime.Now;
@@ -149,6 +149,11 @@ public class EyeTrackingManager : MonoBehaviour
         // set US culture for number formatting in strings
         System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
         System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+    }
+
+    private void Start()
+    {
+        eyeTracker.StartListening(); // start the background event system
     }
 
     void Update()

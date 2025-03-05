@@ -19,7 +19,10 @@ public class ViveEyeTracker : IEyeTracker
         SRanipal_Eye_Framework.Instance.EnableEyeDataCallback = true;
         // make sure the framework status is WORKING
         Debug.Log(SRanipal_Eye_Framework.Status);
+
         Debug.Log(SRanipal_Eye_Framework.FrameworkStatus.WORKING);
+        Debug.Log(SRanipal_Eye_Framework.Status);
+
     }
 
     public void Calibrate()
@@ -33,6 +36,9 @@ public class ViveEyeTracker : IEyeTracker
         {
             eye_callback_registered = true;
             SRanipal_Eye.WrapperRegisterEyeDataCallback(Marshal.GetFunctionPointerForDelegate((SRanipal_Eye.CallbackBasic)EyeCallback));
+            Debug.Log("Registered Eye Data Callback");
+            Debug.Log(SRanipal_Eye_Framework.FrameworkStatus.WORKING);
+            Debug.Log(SRanipal_Eye_Framework.Status);
         }
     }
 
@@ -84,7 +90,7 @@ public class ViveEyeTracker : IEyeTracker
 
         // ET timestamp
         gazeData.deviceTimestamp = eyeData.timestamp;
-        gazeData.UnityTimestamp = Time.time;
+        //gazeData.UnityTimestamp = Time.time;
         
         // validity
         eyeData.verbose_data.left.GetValidity(SingleEyeDataValidity.SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY);
