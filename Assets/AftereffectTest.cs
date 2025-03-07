@@ -7,6 +7,7 @@ public class AftereffectTest : MonoBehaviour
     public float startWaitTime = 2f; // inter-stimulus interval
     public float targetDuration = 1f; // duration of target presentation
     public float[] targetHeightVisualAngle = {10f , -20f}; // target location as height visual angle
+    public string fileName = "test.csv";
     public float targetDistance = 10f;
     public bool invisibleTarget = false;
     public int nTrials = 5; // trials per targetLocation
@@ -18,6 +19,7 @@ public class AftereffectTest : MonoBehaviour
     private Quaternion initialRotation; // save initial rotation of the camera for each trial
     private Vector3 initialPosition;
     private EyeTrackingManager eyeTracker;
+
     
     void Start()
     {
@@ -25,6 +27,7 @@ public class AftereffectTest : MonoBehaviour
         // initialize targetHeightPerTrial
         targetHeightPerTrial = GetTargetHeightPerTrial();
     }
+
 
     float[] GetTargetHeightPerTrial()
     {
@@ -59,7 +62,7 @@ public class AftereffectTest : MonoBehaviour
 
     public IEnumerator RunTest(int nTrials, bool invisibleTarget)
     {
-        eyeTracker.StartRecording("test1.csv");
+        eyeTracker.StartRecording(fileName);
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
         // loop trough all target positions
@@ -71,7 +74,7 @@ public class AftereffectTest : MonoBehaviour
             for (int j = 0; j < nTrials; j++)
             {
                 // set target position for current trial
-                transform.position = initialPosition + initialRotation * Quaternion.Euler(targetHeightPerTrial[currentTrial], 0, 0) * new Vector3(0, 0, targetDistance);
+                transform.position = initialPosition + initialRotation * new Vector3(0, 0, targetDistance);
                 transform.position = new Vector3(transform.position.x, initialPosition.y + Random.Range(-0.5f,0.5f), transform.position.z);
                 GetComponent<Renderer>().material.color = Color.red;
 
@@ -111,6 +114,7 @@ public class AftereffectTest : MonoBehaviour
             }   
         }
         Debug.Log("Aftereffect test completed.");
+        eyeTracker.StopRecording();
     }
 
     void PlayBeep()
@@ -122,7 +126,6 @@ public class AftereffectTest : MonoBehaviour
     private float GetYawRotation()
     {
         float deltaAngle = Mathf.DeltaAngle(initialRotation.eulerAngles.y, Camera.main.transform.rotation.eulerAngles.y);
-        Debug.Log(deltaAngle);
         return deltaAngle;
     }
 }

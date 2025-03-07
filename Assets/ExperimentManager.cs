@@ -7,14 +7,17 @@ public class ExperimentManager : MonoBehaviour
 {
     public static ExperimentManager instance;
     public int subjectID = 0;
+    public int baselineTrials = 4;
     public int aftereffectTestTrials = 4;
     public int adaptationTrials = 4;
+    public float preBaseLineDuration = 5f;
     public float adaptationDuration = 120f; // in seconds; duration for each trial
     public string adaptationScene = "AdaptationScene";
     public string testScene = "AftereffectScene";
     
     private int currentTrial = 0;
     private string resultsPath;
+    private bool isRunning = false;
 
     private Distortions distortions;
 
@@ -34,20 +37,28 @@ public class ExperimentManager : MonoBehaviour
     }
     void Start()
     {
-        distortions = GetComponent<Distortions>();
+        distortions = Camera.main.gameObject.GetComponent<Distortions>();
         distortions.active = false;
         // output = "./measurements/subjectID/results.csv"
         resultsPath = Path.Combine(Application.dataPath, "measurements", subjectID.ToString(), "results.csv");
         Directory.CreateDirectory(Path.GetDirectoryName(resultsPath));
-        StartCoroutine(RunExperiment());
+    }
+
+    private void Update()
+    {
+        if(!isRunning && Input.GetKeyDown(KeyCode.Space))
+        {
+            StartCoroutine(RunExperiment());
+        }
     }
 
     private IEnumerator RunExperiment()
     {
         Debug.Log("Starting experiment...");
-        
-        yield return StartCoroutine(AdaptationPhase(60)); // adaptation phase without distortions
-        yield return StartCoroutine(TestPhase(6,false)); // baseline: six trials with target
+        isRunning = true;
+
+        yield return StartCoroutine(AdaptationPhase(preBaseLineDuration)); // adaptation phase without distortions
+        yield return StartCoroutine(TestPhase(baselineTrials,false)); // baseline: six trials with target
         yield return StartCoroutine(TestPhase(aftereffectTestTrials,true)); // baseline: n trials without target (VOR in the dark)
         // turn distortions on
         distortions.active = true;
@@ -60,6 +71,7 @@ public class ExperimentManager : MonoBehaviour
         }
         Debug.Log("Experiment completed.");
         distortions.active = false;
+        isRunning = false;
     }
 
     private IEnumerator AdaptationPhase(float adaptationDuration)
