@@ -7,14 +7,16 @@ public class ExperimentManager : MonoBehaviour
 {
     public static ExperimentManager instance;
     public int subjectID = 0;
-    public int nTrials = 10;
-    public float adaptationDuration = 5f;
+    public int aftereffectTestTrials = 4;
+    public int adaptationTrials = 4;
+    public float adaptationDuration = 120f; // in seconds; duration for each trial
     public string adaptationScene = "AdaptationScene";
     public string testScene = "AftereffectScene";
     
     private int currentTrial = 0;
     private string resultsPath;
 
+    private Distortions distortions;
 
     void Awake()
     {
@@ -32,6 +34,8 @@ public class ExperimentManager : MonoBehaviour
     }
     void Start()
     {
+        distortions = GetComponent<Distortions>();
+        distortions.active = false;
         // output = "./measurements/subjectID/results.csv"
         resultsPath = Path.Combine(Application.dataPath, "measurements", subjectID.ToString(), "results.csv");
         Directory.CreateDirectory(Path.GetDirectoryName(resultsPath));
@@ -41,28 +45,63 @@ public class ExperimentManager : MonoBehaviour
     private IEnumerator RunExperiment()
     {
         Debug.Log("Starting experiment...");
-        while (currentTrial < nTrials)
-        {
-            yield return StartCoroutine(AdaptationPhase());
-            yield return StartCoroutine(TestPhase());
+        
+        yield return StartCoroutine(AdaptationPhase(60)); // adaptation phase without distortions
+        yield return StartCoroutine(TestPhase(6,false)); // baseline: six trials with target
+        yield return StartCoroutine(TestPhase(aftereffectTestTrials,true)); // baseline: n trials without target (VOR in the dark)
+        // turn distortions on
+        distortions.active = true;
+        // repeated adaptation phase + test phase
+        while (currentTrial < adaptationTrials)
+        {        
+            yield return StartCoroutine(AdaptationPhase(adaptationDuration));
+            yield return StartCoroutine(TestPhase(aftereffectTestTrials,true)); 
             currentTrial++;
         }
         Debug.Log("Experiment completed.");
+        distortions.active = false;
     }
 
-    private IEnumerator AdaptationPhase()
+    private IEnumerator AdaptationPhase(float adaptationDuration)
     {
-        Debug.Log("Starting adaptation phase...");
-        SceneManager.LoadScene(adaptationScene);
+        yield return StartCoroutine(SwitchScene(adaptationScene));
+
+        // TODO: do same stuff as in TestPhase() for scene loading and task starting
         yield return new WaitForSeconds(adaptationDuration);
     }
 
-    private IEnumerator TestPhase()
+    private IEnumerator TestPhase(int nTrials, bool invisibleTarget)
     {
-        Debug.Log("Switching to test scene...");
-        SceneManager.LoadScene(testScene);
-        yield return new WaitForSeconds(1f); // Small delay to ensure scene loads
+        yield return StartCoroutine(SwitchScene(testScene));
+       
+        // Find the GameObject that contains the script responsible for the coroutine
+        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+
+        if (testManagerObject == null)
+        {
+            Debug.LogError("SceneTestManager tagged object not found!");
+            yield break; // Stop execution if the object isn't found
+        }
+
+        AftereffectTest testManager = testManagerObject.GetComponent<AftereffectTest>();
+
+        if (testManager == null)
+        {
+            Debug.LogError("AftereffectTest script not found on the object!");
+            yield break;
+        }
+
+        // Start the test coroutine and wait for it to finish
+        yield return StartCoroutine(testManager.RunTest(nTrials, invisibleTarget));
+
+        // Continue with the experiment
         SaveResults(currentTrial);
+    }
+    private IEnumerator SwitchScene(string sceneName)
+    {
+        SceneManager.LoadScene(sceneName);
+        // Wait until the scene is fully loaded before proceeding
+        yield return new WaitUntil(() => SceneManager.GetActiveScene().name == sceneName);
     }
 
     private void SaveResults(int trialNumber)

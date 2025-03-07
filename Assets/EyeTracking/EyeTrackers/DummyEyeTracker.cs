@@ -39,16 +39,13 @@ public class DummyEyeTracker : IEyeTracker
 
         UnityEngine.Debug.Log("On our way");
         // Get the current gaze data and raise the event
-        GazeData gazeData = new GazeData();
-        UnityEngine.Debug.Log("On our way2");
-
-        SimulatedGazeData();
+        currentGazeData = SimulatedGazeData();
         UnityEngine.Debug.Log("Made it our way");
 
         if (backgroundSampling)
         {
             UnityEngine.Debug.Log("Calling TriggerEvent");
-            EyeTrackingEvent.TriggerEvent(gazeData);
+            EyeTrackingEvent.TriggerEvent(currentGazeData);
         }
     }    
 
@@ -112,7 +109,7 @@ public class DummyEyeTracker : IEyeTracker
     // Get the current gaze point
     public GazeData GetGazeData()
     {
-        return SimulatedGazeData();
+        return currentGazeData;
     }   
 
     private GazeData SimulatedGazeData()

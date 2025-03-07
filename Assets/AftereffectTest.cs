@@ -53,11 +53,11 @@ public class AftereffectTest : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.Space))
         {
             Debug.Log("Starting aftereffect test.");
-            StartCoroutine(RunTest());
+            StartCoroutine(RunTest(nTrials, invisibleTarget));
         }
     }
 
-    private IEnumerator RunTest()
+    public IEnumerator RunTest(int nTrials, bool invisibleTarget)
     {
         eyeTracker.StartRecording("test1.csv");
         // wait for ISI before starting the test
@@ -107,6 +107,7 @@ public class AftereffectTest : MonoBehaviour
                 PlayBeep();
                 GetComponent<Renderer>().material.color = Color.green;
                 yield return new WaitForSeconds(startWaitTime);
+                currentTrial++;
             }   
         }
         Debug.Log("Aftereffect test completed.");

@@ -552,6 +552,8 @@ GameObject:
   - component: {fileID: 1562449591}
   - component: {fileID: 1562449589}
   - component: {fileID: 1562449590}
+  - component: {fileID: 1562449592}
+  - component: {fileID: 1562449593}
   m_Layer: 0
   m_Name: ExperimentManager
   m_TagString: Untagged
@@ -572,7 +574,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   subjectID: 0
-  nTrials: 10
+  aftereffectTestTrials: 4
+  adaptationTrials: 4
   adaptationDuration: 5
   adaptationScene: Adaptation
   testScene: Aftereffect
@@ -611,6 +614,40 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1562449592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562449588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47613961cde0a8b4aa4f79219b7e523c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  EnableEye: 1
+  EnableEyeDataCallback: 1
+  EnableEyeVersion: 0
+--- !u!114 &1562449593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562449588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d753e4b1a1aa0c747932f27171911a16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  active: 0
+  multiplier: 1
+  displacementX: 0
+  displacementY: 0
+  magn: 1
+  radial: 0
+  asym: 0
 --- !u!1001 &1626805704
 PrefabInstance:
   m_ObjectHideFlags: 0

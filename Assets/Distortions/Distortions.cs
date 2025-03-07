@@ -26,7 +26,11 @@ public class Distortions : MonoBehaviour
     {
         distortionMaterial = new Material(Shader.Find("Hidden/RadialDistortion"));
         // calculate FoV and scaling factors for transformation
-        cam = gameObject.GetComponent<Camera>();
+        cam = Camera.main;
+        if (cam == null)
+        {
+            Debug.LogError("Main camera not found.");
+        }
         print("Vertical FoV: " + cam.fieldOfView);
         print("Horizontal FoV: " + cam.fieldOfView * cam.aspect);
         float scalingX = multiplier * Mathf.Tan(Mathf.Deg2Rad * (cam.fieldOfView * cam.aspect / 2.0f));
