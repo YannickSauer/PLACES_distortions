@@ -60,7 +60,7 @@ namespace ViveSR
 
                 void OnDestroy()
                 {
-                    StopFramework();
+                    //StopFramework();
                 }
 
                 public void StartFramework()

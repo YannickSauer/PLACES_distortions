@@ -19,13 +19,28 @@ public class AftereffectTest : MonoBehaviour
     private Quaternion initialRotation; // save initial rotation of the camera for each trial
     private Vector3 initialPosition;
     private EyeTrackingManager eyeTracker;
+    private ExperimentManager expManager;
+    private float initTargetScale;
+    private GameObject room;
 
     
     void Start()
     {
         eyeTracker = EyeTrackingManager.instance;
+        expManager = ExperimentManager.instance;
         // initialize targetHeightPerTrial
         targetHeightPerTrial = GetTargetHeightPerTrial();
+
+        // adjust the target size for distortions, i.e. reduce the size if the image is magnified. It should appear in the same size always
+        initTargetScale = transform.localScale.x; // assuming all scale components are the same
+        transform.localScale = initTargetScale / Camera.main.GetComponent<Distortions>().magn * new Vector3(1f, 1f, 1f);
+        
+        // "hide" target in the beginning
+        transform.localPosition = new Vector3(0, 0, -2000f);
+
+
+        // find the room object, which is invisible during trials
+        room = GameObject.Find("Room");
     }
 
 
@@ -53,18 +68,23 @@ public class AftereffectTest : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.Space))
-        {
-            Debug.Log("Starting aftereffect test.");
-            StartCoroutine(RunTest(nTrials, invisibleTarget));
-        }
+     
     }
 
     public IEnumerator RunTest(int nTrials, bool invisibleTarget)
     {
         eyeTracker.StartRecording(fileName);
+        // wait for the participant to rotate towards the test direction
+        while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
+        {
+            yield return null;
+        }
+         
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
+
+        room.SetActive(false);
+
         // loop trough all target positions
         initialRotation = Camera.main.transform.rotation;
         initialPosition = Camera.main.transform.position;

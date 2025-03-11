@@ -165,7 +165,7 @@ public class EyeTrackingManager : MonoBehaviour
             Calibrate();
         }
 
-        if (isObjectRecording)
+        if (isRecording && isObjectRecording)
         {
             QueueTrackingData(trackingDataQueue);
         }
@@ -206,7 +206,7 @@ public class EyeTrackingManager : MonoBehaviour
         if (!isRecording)
         {
             gazeTrackingQueue.Clear(); // hier oder in stop tracking
-            
+            trackingDataQueue.Clear();
             objectTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_head.csv");
             Debug.Log("Object tracking file " + objectTrackingFile);
             gazeTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_gaze.csv");
@@ -223,7 +223,6 @@ public class EyeTrackingManager : MonoBehaviour
                 counter++;
                 objectTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_head.csv");
                 Debug.Log("Object tracking file already exists. Changing filename to " + objectTrackingFile);
-
                 gazeTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
             }
             WriteHeader();

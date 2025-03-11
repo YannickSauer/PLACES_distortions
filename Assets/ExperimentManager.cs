@@ -58,8 +58,8 @@ public class ExperimentManager : MonoBehaviour
         isRunning = true;
 
         yield return StartCoroutine(AdaptationPhase(preBaseLineDuration)); // adaptation phase without distortions
-        yield return StartCoroutine(TestPhase(baselineTrials,false)); // baseline: six trials with target
-        yield return StartCoroutine(TestPhase(aftereffectTestTrials,true)); // baseline: n trials without target (VOR in the dark)
+        yield return StartCoroutine(TestPhase(baselineTrials,false)); // baseline trials with target
+        yield return StartCoroutine(TestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
         // turn distortions on
         distortions.active = true;
         // repeated adaptation phase + test phase

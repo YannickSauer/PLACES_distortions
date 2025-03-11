@@ -17,11 +17,10 @@ public class ViveEyeTracker : IEyeTracker
     {
         // Activate Eye Data Callback
         SRanipal_Eye_Framework.Instance.EnableEyeDataCallback = true;
-        // make sure the framework status is WORKING
-        Debug.Log(SRanipal_Eye_Framework.Status);
 
-        Debug.Log(SRanipal_Eye_Framework.FrameworkStatus.WORKING);
+        Debug.Log("Checking SRanipal framework status.");
         Debug.Log(SRanipal_Eye_Framework.Status);
+        Debug.Log(SRanipal_Eye_Framework.FrameworkStatus.WORKING);
 
     }
 
