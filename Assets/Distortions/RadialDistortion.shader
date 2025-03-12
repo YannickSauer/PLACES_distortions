@@ -51,8 +51,8 @@
         //xd = (_magn + _radial * r) * x;
         //yd = (_magn + _radial * r) * y;
 
-        uv_distorted.x =  1 / (_magn + _radial * r_sq) * xy.x;
-        uv_distorted.y =  1/(_magn + _radial * r_sq) * xy.y;
+        uv_distorted.x = 1 /(_magn + _radial * r_sq) * xy.x;
+        uv_distorted.y = 1 /(_magn + _radial * r_sq) * xy.y;
         
         // reverse the shift and scaling back to [0,1]
 		uv_distorted.x = uv_distorted.x - x_shift;

@@ -83,7 +83,7 @@ public class AftereffectTest : MonoBehaviour
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
 
-        //room.SetActive(false);
+        room.SetActive(false);
 
         // loop trough all target positions
         initialRotation = Camera.main.transform.rotation;
