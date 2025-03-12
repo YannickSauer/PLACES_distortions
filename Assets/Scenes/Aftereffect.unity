@@ -1236,9 +1236,9 @@ MonoBehaviour:
   subjectID: 0
   baselineTrials: 3
   aftereffectTestTrials: 3
-  adaptationTrials: 4
+  adaptationTrials: 5
   preBaseLineDuration: 5
-  adaptationDuration: 30
+  adaptationDuration: 120
   adaptationScene: OfficeRoom
   testScene: Aftereffect
 --- !u!114 &1562449590

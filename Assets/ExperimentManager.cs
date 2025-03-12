@@ -66,7 +66,8 @@ public class ExperimentManager : MonoBehaviour
         while (currentTrial < adaptationTrials)
         {        
             yield return StartCoroutine(AdaptationPhase(adaptationDuration));
-            yield return StartCoroutine(TestPhase(aftereffectTestTrials,true)); 
+            yield return StartCoroutine(TestPhase(aftereffectTestTrials, false)); // baseline trials with target
+            yield return StartCoroutine(TestPhase(aftereffectTestTrials,true));
             currentTrial++;
         }
         Debug.Log("Experiment completed.");
