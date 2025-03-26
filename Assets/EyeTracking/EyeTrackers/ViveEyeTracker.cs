@@ -15,10 +15,21 @@ public class ViveEyeTracker : IEyeTracker
 
     public void Initialize()
     {
+        // check if SRanipal_Eye_Framework is already present in scene
+        SRanipal_Eye_Framework sranipal = SRanipal_Eye_Framework.Instance;
+        // if not, add it
+        if (sranipal == null)
+        {
+            GameObject go = new GameObject("SRanipal_Eye_Framework");
+            sranipal = go.AddComponent<SRanipal_Eye_Framework>();
+            // set go to not be destroyed on scene change
+            GameObject.DontDestroyOnLoad(go);
+        }
+        
         // Activate Eye Data Callback
-        SRanipal_Eye_Framework.Instance.EnableEyeDataCallback = true;
+        sranipal.EnableEyeDataCallback = true;
+        sranipal.StartFramework();
 
-        Debug.Log("Checking SRanipal framework status.");
         Debug.Log(SRanipal_Eye_Framework.Status);
         Debug.Log(SRanipal_Eye_Framework.FrameworkStatus.WORKING);
 

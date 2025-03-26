@@ -96,11 +96,11 @@ public class ExperimentManager : MonoBehaviour
             yield break; // Stop execution if the object isn't found
         }
 
-        AftereffectTest testManager = testManagerObject.GetComponent<AftereffectTest>();
+        VORTest testManager = testManagerObject.GetComponent<VORTest>();
 
         if (testManager == null)
         {
-            Debug.LogError("AftereffectTest script not found on the object!");
+            Debug.LogError("VORTest script not found on the object!");
             yield break;
         }
 

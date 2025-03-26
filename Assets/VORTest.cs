@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AftereffectTest : MonoBehaviour
+public class VORTest : MonoBehaviour
 {
     public float startWaitTime = 2f; // inter-stimulus interval
     public float targetDuration = 1f; // duration of target presentation
