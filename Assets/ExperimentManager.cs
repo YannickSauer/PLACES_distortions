@@ -13,8 +13,8 @@ public class ExperimentManager : MonoBehaviour
     public float preBaseLineDuration = 5f;
     public float adaptationDuration = 120f; // in seconds; duration for each trial
     public string adaptationScene = "AdaptationScene";
-    public string testScene = "AftereffectScene";
-    
+    public string vorScene = "AftereffectScene";
+    public string swayScene = "RanDot";
     private int currentTrial = 0;
     private string resultsPath;
     private bool isRunning = false;
@@ -58,16 +58,18 @@ public class ExperimentManager : MonoBehaviour
         isRunning = true;
 
         yield return StartCoroutine(AdaptationPhase(preBaseLineDuration)); // adaptation phase without distortions
-        yield return StartCoroutine(TestPhase(baselineTrials,false)); // baseline trials with target
-        yield return StartCoroutine(TestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
+        yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
+        yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
+        yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
         // turn distortions on
         distortions.active = true;
         // repeated adaptation phase + test phase
         while (currentTrial < adaptationTrials)
         {        
             yield return StartCoroutine(AdaptationPhase(adaptationDuration));
-            yield return StartCoroutine(TestPhase(aftereffectTestTrials, false)); // baseline trials with target
-            yield return StartCoroutine(TestPhase(aftereffectTestTrials,true));
+            yield return StartCoroutine(VORTestPhase(aftereffectTestTrials, false)); // baseline trials with target
+            yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true));
+            yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
             currentTrial++;
         }
         Debug.Log("Experiment completed.");
@@ -83,9 +85,9 @@ public class ExperimentManager : MonoBehaviour
         yield return new WaitForSeconds(adaptationDuration);
     }
 
-    private IEnumerator TestPhase(int nTrials, bool invisibleTarget)
+    private IEnumerator VORTestPhase(int nTrials, bool invisibleTarget)
     {
-        yield return StartCoroutine(SwitchScene(testScene));
+        yield return StartCoroutine(SwitchScene(vorScene));
        
         // Find the GameObject that contains the script responsible for the coroutine
         GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
@@ -110,6 +112,35 @@ public class ExperimentManager : MonoBehaviour
         // Continue with the experiment
         SaveResults(currentTrial);
     }
+
+    private IEnumerator SwimTestPhase()
+    {
+        yield return StartCoroutine(SwitchScene(swayScene));
+       
+        // Find the GameObject that contains the script responsible for the coroutine
+        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+
+        if (testManagerObject == null)
+        {
+            Debug.LogError("SceneTestManager tagged object not found!");
+            yield break; // Stop execution if the object isn't found
+        }
+
+        SwimTest testManager = testManagerObject.GetComponent<SwimTest>();
+
+        if (testManager == null)
+        {
+            Debug.LogError("VORTest script not found on the object!");
+            yield break;
+        }
+
+        // Start the test coroutine and wait for it to finish
+        yield return StartCoroutine(testManager.RunTest());
+
+        // Continue with the experiment
+        SaveResults(currentTrial);
+    }
+
     private IEnumerator SwitchScene(string sceneName)
     {
         SceneManager.LoadScene(sceneName);

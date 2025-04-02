@@ -73,7 +73,7 @@ Shader "Hidden/DotShader"
                 int positionIndex = Triangles[vertex_id];
                 float3 position = Positions[positionIndex];
                 // scale mesh size with size factor and vertical screen resolution (then _Size scales roughtly pixel size)
-                position *= _Size ;
+                position *= (_Size +  5*step(0.66, SphereLocations[instance_id].w)); // larger size if the sphere is the fixation target
                 // adjust the aspect ratio of the mesh to the aspect ratio of the screen
                 position.x *= _ScreenParams.y / _ScreenParams.x;
                 // project sphere location to clip space
@@ -96,7 +96,16 @@ Shader "Hidden/DotShader"
 
                 // return sphere center (location) + the vertex position (position) with position.w = 1
                 o.pos = float4(position,1) + location;
-                o.color = _Color.rgb * SphereLocations[instance_id].w;
+                //o.color = _Color.rgb * SphereLocations[instance_id].w;
+
+                // Step function determines if a threshold is crossed (avoiding branching)
+                float w = step(0.33, SphereLocations[instance_id].w); // 0 if black, 1 if white or red
+                float r = step(0.66, SphereLocations[instance_id].w); // 0 if black/white, 1 if red
+                fixed4 black = fixed4(0,0,0,1);
+                fixed4 white = fixed4(1,1,1,1);
+                // Linearly interpolate between colors
+                fixed4 color = lerp(black, white, w); // Black -> White transition
+                o.color = lerp(color, _Color, r); // White -> Red transition
 
                 return o;
             }

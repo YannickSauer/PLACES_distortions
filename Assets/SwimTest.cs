@@ -5,18 +5,21 @@ using System.IO;
 
 public class SwimTest : MonoBehaviour
 {
-    public float startWaitTime = 2f; // inter-stimulus interval
-    public float targetDuration = 1f; // duration of target presentation
+    public float startWaitTime = 0.1f; // inter-stimulus interval
     public string filePath = "swimTest.csv";
     public string eyeTrackerFileName = "swimTest_gaze.csv";
     public float targetDistance = 10f;
     public bool invisibleTarget = false;
     public int nTrials = 5; // number of trials
-    public float[] magnificationTrial = { 0.8f, 0.9f, 1f, 1.1f, 1.2f }; // visual angle of the target
-    public float[] radialTrial = { 0.0f, 0.0f, 0f, 0.0f, 0.0f }; // visual angle of the target
+    public float[] magnificationStimulusLevels = { 0.8f, 0.9f, 1f, 1.1f, 1.2f }; // visual angle of the target
+    public float[] radialStimulisLevels = { 0.0f }; // visual angle of the target
+    int stimulusRepetitions = 6; // number of repetitions for each stimulus level
     public float leftRotationThreshold = -10f;
     public float rightRotationThreshold = 10f;
     public float centerThreshold = 2f;
+    
+    private float[] magnificationTrial;
+    private float[] radialTrial;
     private float[] targetHeightPerTrial;
     private int currentTrial = 0;
     private Quaternion initialRotation; // save initial rotation of the camera for each trial
@@ -26,14 +29,18 @@ public class SwimTest : MonoBehaviour
     private DotManager dotManager;
     private float initTargetScale;
     public GameObject scene;
-
     
     void Start()
     {
         eyeTracker = EyeTrackingManager.instance;
         expManager = ExperimentManager.instance;
         
-        dotManager = GetComponent<DotManager>();
+        dotManager = Camera.main.GetComponent<DotManager>();
+        if (dotManager == null)
+        {
+            Debug.LogError("Dot manager not found. Please add the DotManager component to the camera.");
+            return;
+        }
 
         scene = GameObject.Find("Scene");
 
@@ -42,12 +49,14 @@ public class SwimTest : MonoBehaviour
         AdjustForMagnification();
 
         // fill the trial variables
-        for (int i = 0; i < nTrials; i++)
-        {
-            magnificationTrial[i] = Random.Range(0.8f, 1.2f);
-            radialTrial[i] = 0.0f;
-        }
-        
+        magnificationTrial = ExperimentPreparation.FillWithSamples(magnificationStimulusLevels, stimulusRepetitions, 1);
+        radialTrial = ExperimentPreparation.FillWithSamples(radialStimulisLevels, stimulusRepetitions, 1);
+        // randomly permute the trials
+        ExperimentPreparation.RandPermute(magnificationTrial);
+        ExperimentPreparation.RandPermute(radialTrial);
+
+        nTrials = magnificationTrial.Length;
+
         // Create file and write header if it does not exist
         if (!File.Exists(filePath))
         {
@@ -55,6 +64,17 @@ public class SwimTest : MonoBehaviour
             {
                 writer.WriteLine("trial,timestamp,magnification,radial,response");
             }
+        }
+
+        // if experiment is not found, then start the experiment
+        if (eyeTracker == null)
+        {
+            Debug.LogError("Eye tracking manager not found. Please add the EyeTrackingManager component to the scene.");
+        }
+        if (expManager == null)
+        {
+            Debug.Log("Experiment manager not found. Starting the experiment by itself.");
+            StartCoroutine(RunTest());
         }
     }
 
@@ -70,8 +90,9 @@ public class SwimTest : MonoBehaviour
      
     }
 
-    public IEnumerator RunTest(int nTrials)
+    public IEnumerator RunTest()
     {
+        Debug.Log("Starting aftereffect test.");
         //eyeTracker.StartRecording(fileName);
         //TODO: fill the trial variables        
         // wait for the participant to rotate towards the test direction
@@ -94,13 +115,17 @@ public class SwimTest : MonoBehaviour
             dotManager.distortionParam.y = radialTrial[trial];
             
             // set scene and random dots for the current distortion
+            dotManager.active = true;
             scene.SetActive(true);
             AdjustForMagnification();
             dotManager.Resample();
             dotManager.Reproject();
             scene.SetActive(false);
 
-            eyeTracker.WriteMessage("StartTestTrial" + currentTrial);
+            if (eyeTracker != null)
+            {
+                eyeTracker.WriteMessage("StartTestTrial" + currentTrial);
+            }
             // save initial rotation of the camera
             
             // wait for full head rotation left
@@ -121,12 +146,18 @@ public class SwimTest : MonoBehaviour
 
             // Wait for head to return to center
             yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) < centerThreshold);
-            eyeTracker.WriteMessage("StopTestTrial" + currentTrial);
+            if (eyeTracker != null)
+            {
+                eyeTracker.WriteMessage("StopTestTrial" + currentTrial);
+            }
             PlayBeep();
+
+            // remove the random dots
+            dotManager.active = false;
 
             // wait for participant answer
             yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow));
-             // You can check which key was pressed
+            // you can check which key was pressed
             if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
                 SaveTrial("L");
@@ -136,7 +167,7 @@ public class SwimTest : MonoBehaviour
                 SaveTrial("R");
             }
 
-            GetComponent<Renderer>().material.color = Color.green;
+            //GetComponent<Renderer>().material.color = Color.green;
             yield return new WaitForSeconds(startWaitTime);
             currentTrial++;
         }
@@ -147,7 +178,7 @@ public class SwimTest : MonoBehaviour
     void SaveTrial(string answer)
     {
         // save the trial data
-        string trialData = currentTrial + "," + magnificationTrial[currentTrial] + "," + radialTrial[currentTrial] + "," + answer;
+        string trialData = currentTrial + "," + Time.time + "," + magnificationTrial[currentTrial] + "," + radialTrial[currentTrial] + "," + answer;
         using (StreamWriter writer = new StreamWriter(filePath, true))
         {
             writer.WriteLine(trialData);
@@ -156,9 +187,11 @@ public class SwimTest : MonoBehaviour
     }
 
 
-    void PlayBeep()
+    void PlayBeep(float pitch = 1f)
     {
-        GetComponent<AudioSource>().Play();
+        AudioSource beep = GetComponent<AudioSource>();
+        beep.pitch = pitch;
+        beep.Play();
     }
 
     // return horizontal rotation of the camera relative to the starting position

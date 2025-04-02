@@ -12,7 +12,7 @@ using System.Globalization;
 public class DotManager : MonoBehaviour
 {
     [Header("Dot parameters")]
-    public const int nDots = 1000;  
+    public const int nDots = 2000;  
     public float size = 20f;  
     public Color dotColor = Color.white;
     [Range (0f, 1f)]
@@ -31,6 +31,7 @@ public class DotManager : MonoBehaviour
     [Header("Scene parameters")]
     public Color backgroundColor = Color.gray;
     public bool showScene = false;
+    public bool showFixationTarget = false;
     public float cutoff = 80f;
     public GameObject cam;
     public bool loadFiles = true; 
@@ -86,7 +87,8 @@ public class DotManager : MonoBehaviour
         Debug.Log(invDots[0]);
 
         dotPositions = ProjectOnScene(invDots);
-
+        Debug.Log("After projection:");
+        Debug.Log(dotPositions[0]);
         // set buffer with dots' scene positions 
         positionBuffer = new ComputeBuffer(nDots, sizeof(float) * 4);
         positionBuffer.SetData(dotPositions);
@@ -167,6 +169,10 @@ public class DotManager : MonoBehaviour
                 dots[i] = new Vector3(-3f + 6f * Random.value, -2f + 4f * Random.value,1f); // random point on x-y-plane with distance z=1
             }
         }
+        if (showFixationTarget)
+        {
+            dots[dots.Length - 1] = new Vector3(0f, 0f, 1f); // center point as fixation target
+        }
         return dots;
     }
 
@@ -186,6 +192,11 @@ public class DotManager : MonoBehaviour
             float r_sq = dotsDistorted[i].x* dotsDistorted[i].x + (dotsDistorted[i].y - assym) * (dotsDistorted[i].y - assym);
             dotsDistorted[i].x /= (magn + radial * r_sq);
             dotsDistorted[i].y /= (magn + radial * r_sq);
+            if (i == dots.Length -1)
+            {
+                Debug.Log("Inverse Distortion:");
+                Debug.Log(dotsDistorted[i]);
+            }
         }
         return dotsDistorted;
     }
@@ -198,11 +209,19 @@ public class DotManager : MonoBehaviour
         for (int i = 0; i < dots.Length; i++)
         {   
             RaycastHit hit;
-            Ray rayFromDot = new Ray(cam.transform.position, cam.transform.rotation * new Vector3(dots[i].x,dots[i].y,1)); 
+            // dots can be projected in camera direction or always in z direction
+            // camera direction:
+            // Ray rayFromDot = new Ray(cam.transform.position, cam.transform.rotation * new Vector3(dots[i].x,dots[i].y,1)); 
+            // z direction:
+            Ray rayFromDot = new Ray(cam.transform.position, new Vector3(dots[i].x,dots[i].y,1));
             if (Physics.Raycast(rayFromDot, out hit))
             {
                 // add 4th value to indicate color (white or black)
-                dots4d[i] = new Vector4(hit.point.x, hit.point.y, hit.point.z, Random.Range(0,2));
+                dots4d[i] = new Vector4(hit.point.x, hit.point.y, hit.point.z, Random.Range(0f,0.66f)); // 0 to 0.33 is white, 0.33 to 0.66 is black
+                if ((i==dots.Length-1) && (showFixationTarget))
+                {
+                    dots4d[i] = new Vector4(hit.point.x, hit.point.y, hit.point.z, 1.0f); // center point as fixation target
+                }
             }
         }
         scene.SetActive(showScene);
