@@ -178,9 +178,9 @@ public class DotManager : MonoBehaviour
     Vector2[] InverseDistortion(Vector3[] dots){
         Vector2[] dotsDistorted = new Vector2[dots.Length];
 
-        float magn = distortionManager.magn;
-        float radial = distortionManager.radial;    
-        float assym = distortionManager.asym;
+        float magn = distortionParam.x;
+        float radial = distortionParam.y;
+        float assym = distortionParam.z;
 
         for (int i = 0; i < dots.Length; i++){
             dotsDistorted[i].x = dots[i].x / dots[i].z;
