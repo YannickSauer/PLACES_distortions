@@ -73,7 +73,7 @@ Shader "Hidden/DotShader"
                 int positionIndex = Triangles[vertex_id];
                 float3 position = Positions[positionIndex];
                 // scale mesh size with size factor and vertical screen resolution (then _Size scales roughtly pixel size)
-                position *= (_Size +  5*step(0.66, SphereLocations[instance_id].w)); // larger size if the sphere is the fixation target
+                position *= (_Size +  _Size*step(0.66, SphereLocations[instance_id].w)); // double size if the sphere is the fixation target
                 // adjust the aspect ratio of the mesh to the aspect ratio of the screen
                 position.x *= _ScreenParams.y / _ScreenParams.x;
                 // project sphere location to clip space

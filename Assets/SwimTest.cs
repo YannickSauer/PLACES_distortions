@@ -18,10 +18,12 @@ public class SwimTest : MonoBehaviour
     public float rightRotationThreshold = 10f;
     public float centerThreshold = 2f;
     
-    private float[] magnificationTrial;
-    private float[] radialTrial;
+    public float[] magnificationTrial;
+    public float[] radialTrial;
+    public float magnification;
+    public float radial;
     private float[] targetHeightPerTrial;
-    private int currentTrial = 0;
+    public int currentTrial = 0;
     private Quaternion initialRotation; // save initial rotation of the camera for each trial
     private Vector3 initialPosition;
     private EyeTrackingManager eyeTracker;
@@ -49,8 +51,8 @@ public class SwimTest : MonoBehaviour
         AdjustForMagnification();
 
         // fill the trial variables
-        magnificationTrial = ExperimentPreparation.FillWithSamples(magnificationStimulusLevels, stimulusRepetitions, 1);
-        radialTrial = ExperimentPreparation.FillWithSamples(radialStimulisLevels, stimulusRepetitions, 1);
+        magnificationTrial = ExperimentPreparation.FillWithSamples(magnificationStimulusLevels, stimulusRepetitions * radialStimulisLevels.Length, 1);
+        radialTrial = ExperimentPreparation.FillWithSamples(radialStimulisLevels, stimulusRepetitions * magnificationStimulusLevels.Length, 1);
         // randomly permute the trials
         ExperimentPreparation.RandPermute(magnificationTrial);
         ExperimentPreparation.RandPermute(radialTrial);
@@ -111,8 +113,10 @@ public class SwimTest : MonoBehaviour
         for (int trial = 0; trial < nTrials; trial++)
         {
             // set the trial distortion
-            dotManager.distortionParam.x = magnificationTrial[trial];
-            dotManager.distortionParam.y = radialTrial[trial];
+            magnification = magnificationTrial[trial];
+            radial = radialTrial[trial];
+            dotManager.distortionParam.x = magnification;
+            dotManager.distortionParam.y = radial;
             
             // set scene and random dots for the current distortion
             dotManager.active = true;
@@ -172,7 +176,11 @@ public class SwimTest : MonoBehaviour
             currentTrial++;
         }
         Debug.Log("Aftereffect test completed.");
-        eyeTracker.StopRecording();
+        if (eyeTracker != null)
+        {
+            eyeTracker.StopRecording();
+        }
+        
     }
 
     void SaveTrial(string answer)
