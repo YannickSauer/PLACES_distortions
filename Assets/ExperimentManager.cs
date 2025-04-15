@@ -60,7 +60,7 @@ public class ExperimentManager : MonoBehaviour
         yield return StartCoroutine(AdaptationPhase(preBaseLineDuration)); // adaptation phase without distortions
         yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
         yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
-        yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
+        //yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
         // turn distortions on
         distortions.active = true;
         // repeated adaptation phase + test phase
@@ -69,7 +69,7 @@ public class ExperimentManager : MonoBehaviour
             yield return StartCoroutine(AdaptationPhase(adaptationDuration));
             yield return StartCoroutine(VORTestPhase(aftereffectTestTrials, false)); // baseline trials with target
             yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true));
-            yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
+            //yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
             currentTrial++;
         }
         Debug.Log("Experiment completed.");

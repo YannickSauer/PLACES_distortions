@@ -358,10 +358,10 @@ MonoBehaviour:
   eyeTrackerFileName: swimTest_gaze.csv
   targetDistance: 10
   invisibleTarget: 0
-  nTrials: 5
+  nTrials: 10
   magnificationStimulusLevels:
-  - 0.75
   - 1
+  - 0.75
   - 1.25
   radialStimulisLevels:
   - 0

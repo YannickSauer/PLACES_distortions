@@ -80,7 +80,7 @@ public class EyeTrackingManager : MonoBehaviour
         else
         {
             Debug.Log("Singleton instance already existed.");
-            Destroy(gameObject);
+            Destroy(gameObject);    
             return;
         }
 
@@ -249,8 +249,12 @@ public class EyeTrackingManager : MonoBehaviour
     private void OnDisable()
     {
         WriteTrackingData();
-        eyeTracker.StopListening();
-        EyeTrackingEvent.OnDataAvailable -= HandleData;
+        if(eyeTracker != null)
+        {
+            eyeTracker.StopListening();
+            EyeTrackingEvent.OnDataAvailable -= HandleData;
+        }
+        
     }
     
     // Write header for tracking files
