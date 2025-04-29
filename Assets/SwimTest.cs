@@ -14,9 +14,10 @@ public class SwimTest : MonoBehaviour
     public float[] magnificationStimulusLevels = { 0.8f, 0.9f, 1f, 1.1f, 1.2f }; // visual angle of the target
     public float[] radialStimulisLevels = { 0.0f }; // visual angle of the target
     int stimulusRepetitions = 6; // number of repetitions for each stimulus level
-    public float leftRotationThreshold = -10f;
-    public float rightRotationThreshold = 10f;
+    public float headRotationThreshold = 10f;
+    public float timingThreshold = 0.2f; // timing offset allowed for the participant
     public float centerThreshold = 2f;
+    public float metronomeFrequency = 1f; // frequency of the metronome in Hz
     
     private float[] magnificationTrial;
     private float[] radialTrial;
@@ -29,6 +30,8 @@ public class SwimTest : MonoBehaviour
     private DotManager dotManager;
     private float initTargetScale;
     public GameObject scene;
+    private float lastBeepTime;
+    private float nextBeepTime;
     
     void Start()
     {
@@ -74,7 +77,8 @@ public class SwimTest : MonoBehaviour
         if (expManager == null)
         {
             Debug.Log("Experiment manager not found. Starting the experiment by itself.");
-            StartCoroutine(RunTest());
+            
+            StartCoroutine(RunTraining());
         }
     }
 
@@ -88,6 +92,91 @@ public class SwimTest : MonoBehaviour
     void Update()
     {
      
+    }
+
+    public IEnumerator Metronome()
+    {
+        // play a metronome sound at a given frequency
+        AudioSource beep = GetComponent<AudioSource>();
+        float waitTime = 1/metronomeFrequency;
+        while (true)
+        {
+            PlayBeep(1.25f); // high pitch metronom sound
+            // save time to compare participant movement with the metronome
+            lastBeepTime = Time.time;
+            nextBeepTime = lastBeepTime + waitTime;
+            yield return new WaitForSeconds(waitTime);
+
+            PlayBeep(1f); // low pitch metronom sound
+            // save time to compare participant movement with the metronome
+            lastBeepTime = Time.time;
+            nextBeepTime = lastBeepTime + waitTime;
+            yield return new WaitForSeconds(waitTime);
+        }
+    }
+
+    public IEnumerator RunTraining()
+    {
+        Debug.Log("Starting headmovement training.");
+        //eyeTracker.StartRecording(fileName);
+        //TODO: fill the trial variables        
+        // wait for the participant to rotate towards the test direction
+        while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
+        {
+            yield return null;
+        }
+         
+        // wait for ISI before starting the test
+        yield return new WaitForSeconds(startWaitTime);
+
+        // loop trough all target positions
+        initialRotation = Camera.main.transform.rotation;
+        initialPosition = Camera.main.transform.position;
+        StartCoroutine(Metronome());
+        int goodTrial = 0;
+        scene.SetActive(true);
+        dotManager.active = false;
+       
+            if (eyeTracker != null)
+            {
+                eyeTracker.WriteMessage("StartTrainingTrial" + currentTrial);
+            }
+            // save initial rotation of the camera
+            
+            // wait for full head rotation left or right
+            yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
+            PlayBeep(0.7f); // low pitch metronom sound
+            if ((Time.time - lastBeepTime < timingThreshold) || (Time.time - nextBeepTime < timingThreshold))
+            {
+                // if the participant moved in the right time, then increase the good trial counter
+                goodTrial++;
+            }
+        while (goodTrial < 10)
+        {
+            if (GetYawRotation() > 0f)
+            {
+                // wait for head to rotate left
+                yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
+            }
+            else
+            {
+                // wait for head to rotate right
+                yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
+            }
+            PlayBeep(0.7f); // low pitch metronom sound
+            if ((Time.time - lastBeepTime < timingThreshold) || (Time.time - nextBeepTime < timingThreshold))
+            {
+                // if the participant moved in the right time, then increase the good trial counter
+                goodTrial++;
+            }
+            else
+            {
+                // if the participant moved in the wrong time, then reset the good trial counter
+                goodTrial = 0;
+            }
+        }
+        Debug.Log("Headmovement training completed.");
+        eyeTracker.StopRecording();
     }
 
     public IEnumerator RunTest()
@@ -129,19 +218,19 @@ public class SwimTest : MonoBehaviour
             // save initial rotation of the camera
             
             // wait for full head rotation left
-            yield return new WaitUntil(() => GetYawRotation() < leftRotationThreshold);
+            yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
             PlayBeep();
 
             // Wait for head to rotate right
-            yield return new WaitUntil(() => GetYawRotation() > rightRotationThreshold);
+            yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
             PlayBeep();
 
             // wait for full head rotation left
-            yield return new WaitUntil(() => GetYawRotation() < leftRotationThreshold);
+            yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
             PlayBeep();
 
             // Wait for head to rotate right
-            yield return new WaitUntil(() => GetYawRotation() > rightRotationThreshold);
+            yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
             PlayBeep();
 
             // Wait for head to return to center
