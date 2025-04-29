@@ -12,8 +12,8 @@ using System.Globalization;
 public class DotManager : MonoBehaviour
 {
     [Header("Dot parameters")]
-    public const int nDots = 2000;  
-    public float size = 20f;  
+    public const int nDots = 3000;  
+    public float size = 1f;  
     public Color dotColor = Color.white;
     [Range (0f, 1f)]
     public float alpha = 0f;
@@ -33,7 +33,6 @@ public class DotManager : MonoBehaviour
     public bool showScene = false;
     public bool showFixationTarget = false;
     public float cutoff = 80f;
-    public GameObject cam;
     public bool loadFiles = true; 
     Vector3 initCamPos;
     Vector3[] initDots;
@@ -62,7 +61,6 @@ public class DotManager : MonoBehaviour
         Debug.Log(SystemInfo.graphicsShaderLevel);
 
         // set background color
-        cam = GameObject.Find("Camera");
         Camera.main.clearFlags = CameraClearFlags.SolidColor;
         Camera.main.backgroundColor = backgroundColor;
 
@@ -180,9 +178,9 @@ public class DotManager : MonoBehaviour
     Vector2[] InverseDistortion(Vector3[] dots){
         Vector2[] dotsDistorted = new Vector2[dots.Length];
 
-        float magn = distortionManager.magn;
-        float radial = distortionManager.radial;    
-        float assym = distortionManager.asym;
+        float magn = distortionParam.x;
+        float radial = distortionParam.y;
+        float assym = distortionParam.z;
 
         for (int i = 0; i < dots.Length; i++){
             dotsDistorted[i].x = dots[i].x / dots[i].z;
@@ -211,9 +209,9 @@ public class DotManager : MonoBehaviour
             RaycastHit hit;
             // dots can be projected in camera direction or always in z direction
             // camera direction:
-            // Ray rayFromDot = new Ray(cam.transform.position, cam.transform.rotation * new Vector3(dots[i].x,dots[i].y,1)); 
+            // Ray rayFromDot = new Ray(transform.position, transform.rotation * new Vector3(dots[i].x,dots[i].y,1)); // assumes this component to be attached to camera already
             // z direction:
-            Ray rayFromDot = new Ray(cam.transform.position, new Vector3(dots[i].x,dots[i].y,1));
+            Ray rayFromDot = new Ray(transform.position, new Vector3(dots[i].x,dots[i].y,1));
             if (Physics.Raycast(rayFromDot, out hit))
             {
                 // add 4th value to indicate color (white or black)
@@ -224,7 +222,6 @@ public class DotManager : MonoBehaviour
                 }
             }
         }
-        scene.SetActive(showScene);
         return dots4d;
     }
 

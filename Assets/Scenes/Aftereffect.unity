@@ -701,8 +701,8 @@ GameObject:
   - component: {fileID: 1347857987}
   - component: {fileID: 1347857986}
   - component: {fileID: 1347857985}
-  - component: {fileID: 1347857989}
   - component: {fileID: 1347857990}
+  - component: {fileID: 1347857991}
   m_Layer: 0
   m_Name: FixationTarget
   m_TagString: SceneTestManager
@@ -796,30 +796,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1347857989
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1347857984}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4929b9ff307dbe14d91c7e54078698a6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  startWaitTime: 1
-  targetDuration: 1
-  targetHeightVisualAngle:
-  - 10
-  - -20
-  fileName: test.csv
-  targetDistance: 10
-  invisibleTarget: 1
-  nTrials: 8
-  leftRotationThreshold: -10
-  rightRotationThreshold: 10
-  centerThreshold: 4
 --- !u!82 &1347857990
 AudioSource:
   m_ObjectHideFlags: 0
@@ -916,6 +892,30 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1347857991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1347857984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7240e79ead0814542bbff713da05c91c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startWaitTime: 2
+  targetDuration: 1
+  targetHeightVisualAngle:
+  - 10
+  - -20
+  fileName: test.csv
+  targetDistance: 10
+  invisibleTarget: 0
+  nTrials: 5
+  leftRotationThreshold: -10
+  rightRotationThreshold: 10
+  centerThreshold: 2
 --- !u!1 &1962730509
 GameObject:
   m_ObjectHideFlags: 0
@@ -1073,6 +1073,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3407299174291893054, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
+      propertyPath: m_BackGroundColor.b
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3407299174291893054, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
+      propertyPath: m_BackGroundColor.g
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3407299174291893054, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
+      propertyPath: m_BackGroundColor.r
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4759481945562532823, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
+      propertyPath: magn
+      value: 1.2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1129,6 +1145,18 @@ PrefabInstance:
     - target: {fileID: 2488697842786815487, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: vorScene
+      value: Aftereffect
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: adaptationDuration
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: preBaseLineDuration
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6619891017217299583, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: trackedObjectList.Array.data[0].gameObject
