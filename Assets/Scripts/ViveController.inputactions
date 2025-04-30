@@ -1,0 +1,34 @@
+{
+    "name": "ViveController",
+    "maps": [
+        {
+            "name": "Controller",
+            "id": "99a39a56-4751-4457-a9c6-3a823d2a8741",
+            "actions": [
+                {
+                    "name": "Fire",
+                    "type": "Button",
+                    "id": "c9e78341-6269-468b-8db3-548a5751e94f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "471b4fd8-4e24-4f97-8dcf-5f42392820ee",
+                    "path": "<ViveController>{RightHand}/triggerPressed",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Fire",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

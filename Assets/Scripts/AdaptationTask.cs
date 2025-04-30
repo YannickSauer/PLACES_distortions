@@ -100,10 +100,14 @@ public class AdaptationTask : MonoBehaviour
     void Update()
     {
         if (Input.GetMouseButtonDown(0)) {
+            Debug.Log(Input.mousePosition);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Debug.DrawRay(ray.origin, 10f * ray.direction, Color.cyan);
             if (Physics.Raycast(ray, out RaycastHit hit)) {
+                Debug.Log(hit.transform.gameObject.name);
                 Balloon balloon = hit.collider.GetComponent<Balloon>();
                 if (balloon != null) {
+                    Debug.Log("Balloon Hit");
                     balloon.Pop();
                 }
             }

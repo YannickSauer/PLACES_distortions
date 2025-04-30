@@ -15,5 +15,6 @@ EditorBuildSettings:
     path: Assets/Scenes/RanDot.unity
     guid: 06fe50b9359006747b435f3741b49e6b
   m_configObjects:
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 40d912408cd2ebc4f9b12ab5d63a9b28, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 73e1e95062945e644a8a840a0817f33b, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: bf4a7567011975949921fc1ba48c4500, type: 2}

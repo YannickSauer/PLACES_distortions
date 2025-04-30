@@ -1246,6 +1246,8 @@ GameObject:
   m_Component:
   - component: {fileID: 872012321}
   - component: {fileID: 872012320}
+  - component: {fileID: 872012322}
+  - component: {fileID: 872012323}
   m_Layer: 0
   m_Name: Gun
   m_TagString: Untagged
@@ -1265,6 +1267,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 899fe849e99b24141b0dddd4e2f2a5a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hitDotPrefab: {fileID: 717520334779577734, guid: ced0e5182c189e44dbeb836802b559be, type: 3}
 --- !u!4 &872012321
 Transform:
   m_ObjectHideFlags: 0
@@ -1281,6 +1284,58 @@ Transform:
   - {fileID: 2106206826}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &872012322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 872012319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a2a9c34df4095f47b9ca8f975175f5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Device: 1
+  m_PoseSource: 5
+  m_PoseProviderComponent: {fileID: 0}
+  m_TrackingType: 0
+  m_UpdateType: 0
+  m_UseRelativeTransform: 0
+--- !u!114 &872012323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 872012319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 0f27fd1a24097b24ea393b1b88ddde7d, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents:
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: c9e78341-6269-468b-8db3-548a5751e94f
+    m_ActionName: Controller/New action
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: Controller
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}
 --- !u!1001 &886797326
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1483,15 +1538,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2627212694169073876, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.292
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2627212694169073876, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.86
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2627212694169073876, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.157
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2627212694169073876, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1689,6 +1744,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4114910861880885824, guid: 02f398aa74cbd6940a0cb6e80427a578, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1249335991}
     - targetCorrespondingSourceObject: {fileID: 9041270684128441372, guid: 02f398aa74cbd6940a0cb6e80427a578, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1476090072}
@@ -1755,6 +1813,33 @@ Transform:
   - {fileID: 445589073}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+--- !u!1 &1249335987 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4114910861880885824, guid: 02f398aa74cbd6940a0cb6e80427a578, type: 3}
+  m_PrefabInstance: {fileID: 1164313424}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &1249335991
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1249335987}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 8249857638457187194, guid: 02f398aa74cbd6940a0cb6e80427a578, type: 3}
 --- !u!1 &1283501585
 GameObject:
   m_ObjectHideFlags: 0
