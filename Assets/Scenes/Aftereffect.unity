@@ -1151,6 +1151,10 @@ PrefabInstance:
       value: Aftereffect
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: adaptationScene
+      value: Adaptation
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationDuration
       value: 10
       objectReference: {fileID: 0}
@@ -1162,7 +1166,8 @@ PrefabInstance:
       propertyPath: trackedObjectList.Array.data[0].gameObject
       value: 
       objectReference: {fileID: 27193353}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 6619891017217299583, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

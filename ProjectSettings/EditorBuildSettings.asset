@@ -9,8 +9,11 @@ EditorBuildSettings:
     path: Assets/Scenes/Aftereffect.unity
     guid: cbe83c27ea08b0e4e96a670efe1a22cf
   - enabled: 1
-    path: Assets/Scenes/OfficeRoom.unity
-    guid: 7a3c915312f07e241ad05b7f2f0ec5a6
+    path: Assets/Scenes/Adaptation.unity
+    guid: dc0fef5af92698a41b37c6d505246f79
+  - enabled: 1
+    path: Assets/Scenes/RanDot.unity
+    guid: 06fe50b9359006747b435f3741b49e6b
   m_configObjects:
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 73e1e95062945e644a8a840a0817f33b, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: bf4a7567011975949921fc1ba48c4500, type: 2}

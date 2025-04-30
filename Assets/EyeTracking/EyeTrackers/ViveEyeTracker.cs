@@ -91,7 +91,6 @@ public class ViveEyeTracker : IEyeTracker
         return currentGazeData;
     }
 
-
     // transform SRAnipal eyeData to general GazeData struct
     // this also converts coordinate system direction and mm to m
     private static GazeData EyeData2GazeData(EyeData eyeData)
@@ -100,7 +99,6 @@ public class ViveEyeTracker : IEyeTracker
 
         // ET timestamp
         gazeData.deviceTimestamp = eyeData.timestamp;
-        //gazeData.UnityTimestamp = Time.time;
         
         // validity
         eyeData.verbose_data.left.GetValidity(SingleEyeDataValidity.SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY);
@@ -112,7 +110,7 @@ public class ViveEyeTracker : IEyeTracker
         origin.x = -origin.x; // mirror x-axis
         Vector3 direction = eyeData.verbose_data.left.gaze_direction_normalized;
         direction.x = -direction.x; // mirror x-axis
-        gazeData.leftGazeRay = new Ray(origin, direction);
+        gazeData.leftRayLocal = new Ray(origin, direction);
         gazeData.leftEyeOpenness = eyeData.verbose_data.left.eye_openness;
         gazeData.leftPupilDiameter = eyeData.verbose_data.left.pupil_diameter_mm;
         //gazeData.leftPupilPosition = eyeData.verbose_data.left.pupil_position_in_sensor_area;
@@ -123,7 +121,7 @@ public class ViveEyeTracker : IEyeTracker
         origin.x = -origin.x;
         direction = eyeData.verbose_data.right.gaze_direction_normalized;
         direction.x = -direction.x;
-        gazeData.rightGazeRay = new Ray(origin, direction);
+        gazeData.rightRayLocal = new Ray(origin, direction);
         gazeData.rightEyeOpenness = eyeData.verbose_data.right.eye_openness;
         gazeData.rightPupilDiameter = eyeData.verbose_data.right.pupil_diameter_mm;
         //gazeData.rightPupilPosition = eyeData.verbose_data.right.pupil_position_in_sensor_area;
@@ -133,7 +131,7 @@ public class ViveEyeTracker : IEyeTracker
         origin.x = -origin.x;
         direction = eyeData.verbose_data.combined.eye_data.gaze_direction_normalized;
         direction.x = -direction.x;
-        gazeData.combinedGazeRay = new Ray(origin, direction);
+        gazeData.combinedRayLocal = new Ray(origin, direction);
 
         // gaze distance
         gazeData.gazeDistance = eyeData.verbose_data.combined.convergence_distance_mm * 0.001f;

@@ -2,17 +2,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
-using System;
-using System.Timers;
-public class DummyEyeTracker : IEyeTracker
+public class DummyEyeTracker : MonoBehaviour, IEyeTracker
 {
+    // DummyEyeTracker simulates an eye tracker by generating gaze data based on the camera's transform (and curser position).
+    // It can be used for testing purposes when a real eye tracker is not available.
+    // It is MonoBehaviour and is added as Compoenent in EyeTrackingToolbox to call Update/Coroutine 
     private GazeData currentGazeData;
     private GameObject cam;
     private Stopwatch stopwatch;
     private float simulatedIpd = 0.064f; // default is 64mm
     private float simulatedNoise = 0.0f; // default is 0.0
     private bool backgroundSampling = false;
-    private Timer timer;
+    private Coroutine samplingCoroutine;
+    public float interval = 0.008f; // sampling interval for generating dummy gaze data
 
 
     // Initialize the dummy eye tracker and set simulated gaze properties
@@ -33,39 +35,42 @@ public class DummyEyeTracker : IEyeTracker
         UnityEngine.Debug.Log("Dummy eye tracker initialized with IPD: " + simulatedIpd + " and noise: " + simulatedNoise);
     }
 
-    private void OnTimedEvent(object sender, ElapsedEventArgs e)
+    private void Update()
     {
-        UnityEngine.Debug.Log("Event triggered at: " + e.SignalTime);
-
-        UnityEngine.Debug.Log("On our way");
-        // Get the current gaze data and raise the event
-        currentGazeData = SimulatedGazeData();
-        UnityEngine.Debug.Log("Made it our way");
-
-        if (backgroundSampling)
-        {
-            UnityEngine.Debug.Log("Calling TriggerEvent");
-            EyeTrackingEvent.TriggerEvent(currentGazeData);
-        }
     }    
 
     public void StartListening()
     {
         backgroundSampling = true;
         UnityEngine.Debug.Log("Dummy eye tracker started listening");
-        timer = new Timer(500); // 500 ms interval (0.5 sec)
-        timer.Elapsed += OnTimedEvent;
-        timer.AutoReset = true; // Repeat
-        timer.Start();
+
+        if (samplingCoroutine == null)
+        {
+            samplingCoroutine = StartCoroutine(SamplingCoroutine(interval));
+        }
     }
 
     public void StopListening()
     {
         backgroundSampling = false;
-        timer.Stop();    // Stop the timer
-        timer.Dispose(); // Release resources
-        timer = null;    // Prevent further use
+
+        if (samplingCoroutine != null)
+        {
+            StopCoroutine(samplingCoroutine);
+            samplingCoroutine = null;
+        }
     }
+
+    private IEnumerator SamplingCoroutine(float interval)
+    {
+        while (backgroundSampling)
+        {
+            currentGazeData = SimulatedGazeData();
+            EyeTrackingEvent.TriggerEvent(currentGazeData);
+            yield return new WaitForSeconds(interval);
+        }
+    }
+    
     // Initialize the dummy eye tracker with default noise
     public void Initialize(float ipd)
     {
@@ -114,31 +119,36 @@ public class DummyEyeTracker : IEyeTracker
 
     private GazeData SimulatedGazeData()
     {
-        if (cam == null)
-        {
-            cam = GameObject.Find("Main Camera");
-            if (cam == null)
-            {
-                UnityEngine.Debug.LogError("Camera not found.");
-                return new GazeData();
-            }
-        }
-        //Vector3 origin = cam.transform.position;
-        //Vector3 direction = cam.transform.rotation * Vector3.forward;
-        //Ray mainCamView = new Ray(origin, direction);
-        //Ray leftEyeRay = new Ray(origin - cam.transform.right * simulatedIpd / 2, direction);
-        //Ray rightEyeRay = new Ray(origin + cam.transform.right * simulatedIpd / 2, direction);
+        // Simulate gaze data based ray casting from the camera in the direction of the cursor
+        Camera cam = Camera.main;
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        UnityEngine.Debug.DrawRay(ray.origin, ray.direction * 1000, Color.red);
 
-        Ray leftGazeRay = new Ray(new Vector3(- simulatedIpd / 2,0,0), Vector3.forward);
-        Ray rightGazeRay = new Ray(new Vector3(simulatedIpd / 2,0,0), Vector3.forward);
-        Ray combinedGazeRay = new Ray(new Vector3(0,0,0), Vector3.forward);
+        Physics.Raycast(ray, out hit);
 
+        Vector3 leftGazeOriginWorld = cam.transform.position - cam.transform.right * simulatedIpd / 2;
+        Vector3 rightGazeOriginWorld = cam.transform.position + cam.transform.right * simulatedIpd / 2;
+        Vector3 leftGazeDirectionWorld = hit.point - leftGazeOriginWorld;
+        Vector3 rightGazeDirectionWorld = hit.point - rightGazeOriginWorld;
+        // normalize gaze rayDirection
+        leftGazeDirectionWorld.Normalize();
+        rightGazeDirectionWorld.Normalize();
+        // get the local camera coordinates for the gaze rays
+        Vector3 leftGazeOriginLocal = cam.transform.InverseTransformDirection(leftGazeDirectionWorld);
+        Vector3 rightGazeOriginLocal = cam.transform.InverseTransformDirection(rightGazeDirectionWorld);
+        // simulate gaze rays in local (camera) coordinates
+        Ray leftGazeRay = new Ray(new Vector3(- simulatedIpd / 2,0,0), leftGazeOriginLocal);    
+        Ray rightGazeRay = new Ray(new Vector3(simulatedIpd / 2,0,0), rightGazeOriginLocal);
+        Ray combinedGazeRay = new Ray(new Vector3(0,0,0), Vector3.Normalize(leftGazeOriginLocal + rightGazeOriginLocal));
+        
         GazeData simulatedGazeData = new GazeData(); 
         simulatedGazeData.deviceTimestamp = stopwatch.ElapsedMilliseconds;
-        simulatedGazeData.UnityTimestamp = Time.time;
-        simulatedGazeData.leftGazeRay = leftGazeRay;
-        simulatedGazeData.rightGazeRay = rightGazeRay;
-        simulatedGazeData.combinedGazeRay = combinedGazeRay;
+        simulatedGazeData.unityTimestamp = UnityEngine.Time.time;
+        
+        simulatedGazeData.leftRayLocal = leftGazeRay;
+        simulatedGazeData.rightRayLocal = rightGazeRay;
+        simulatedGazeData.combinedRayLocal = combinedGazeRay;
         simulatedGazeData.gazeDistance = 1000.0f;
         simulatedGazeData.leftPupilDiameter = 4.0f;
         simulatedGazeData.rightPupilDiameter = 4.0f;
@@ -149,17 +159,6 @@ public class DummyEyeTracker : IEyeTracker
 
         // add gaussian noise to the gaze data
         //TODO: implement noise
-        UnityEngine.Debug.Log("On our way3");
-        return new GazeData();//simulatedGazeData;
+        return simulatedGazeData;
     }
-
-    // Start queueing Eye samples in background
-    //public void StartBackgroundSampling(Queue<GazeData> gazeSamples)
-    //{
-    //    return;
-    //}
-    //public void StopBackgroundSampling()
-    //{
-    //    return;
-    //}
  }

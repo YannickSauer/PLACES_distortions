@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2488697842786815487}
   - component: {fileID: 5745129752733462889}
-  - component: {fileID: 6619891017217299583}
   m_Layer: 0
   m_Name: ExperimentManager
   m_TagString: Untagged
@@ -52,24 +51,5 @@ MonoBehaviour:
   preBaseLineDuration: 5
   adaptationDuration: 120
   adaptationScene: OfficeRoom
-  testScene: Aftereffect
---- !u!114 &6619891017217299583
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971458207915827212}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8030b97266cb5e04e99196225329efd2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  etprovider: 1
-  calibrateKey: 99
-  saveRaycastHitpoint: 0
-  outputFolder: measurements
-  trackedObjectList:
-  - trackingOptions: 0
-    gameObject: {fileID: 0}
-  isObjectRecording: 1
+  vorScene: AftereffectScene
+  swayScene: RanDot
