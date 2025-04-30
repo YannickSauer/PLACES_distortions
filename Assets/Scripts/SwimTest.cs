@@ -72,6 +72,7 @@ public class SwimTest : MonoBehaviour
                 writer.WriteLine("trial,timestamp,magnification,radial,response");
             }
         }
+       
 
         // if experiment is not found, then start the experiment
         if (eyeTracker == null)
@@ -126,6 +127,8 @@ public class SwimTest : MonoBehaviour
     // the training is completed when the participant has 10 good trials in a row
     public IEnumerator RunTraining()
     {
+        yield return null;
+        yield return null;
         Debug.Log("Starting headmovement training.");
         //eyeTracker.StartRecording(fileName);
         //TODO: fill the trial variables        
@@ -134,36 +137,47 @@ public class SwimTest : MonoBehaviour
         {
             yield return null;
         }
-         
+
+        var trainingsDisp = GameObject.Find("Training");
+        Debug.Log(new Vector3(trainingsDisp.transform.position.x, Camera.main.transform.position.y, trainingsDisp.transform.position.z));
+        trainingsDisp.transform.position = new Vector3(trainingsDisp.transform.position.x, Camera.main.transform.position.y, trainingsDisp.transform.position.z);
+
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
 
         // loop trough all target positions
         initialRotation = Camera.main.transform.rotation;
         initialPosition = Camera.main.transform.position;
-        StartCoroutine(Metronome()); // start background metronome sound as indicator for the participant to move their head in the given rythm
+        IEnumerator metronomeCoroutine = Metronome();
+        StartCoroutine(metronomeCoroutine); // start background metronome sound as indicator for the participant to move their head in the given rythm
         int goodTrial = 0;
-        TMP_Text goodTrialText = GameObject.Find("Training").GetComponent<TMP_Text>();
+        TMP_Text goodTrialText = GameObject.Find("Text").GetComponent<TMP_Text>();
         goodTrialText.text = goodTrial.ToString();
         scene.SetActive(true);
         dotManager.active = false;
        
-            if (eyeTracker != null)
-            {
-                eyeTracker.WriteMessage("StartTrainingTrial" + currentTrial);
-            }
-            // save initial rotation of the camera
+        if (eyeTracker != null)
+        {
+            eyeTracker.WriteMessage("StartTrainingTrial" + currentTrial);
+        }
+        // save initial rotation of the camera
             
-            // wait for full head rotation left or right
-            yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
-            PlayBeep(0.7f); // low pitch metronom sound
-            if ((Time.time - lastBeepTime < timingThreshold) || (Time.time - nextBeepTime < timingThreshold))
-            {
-                // if the participant moved in the right time, then increase the good trial counter
-                goodTrial++;
-                goodTrialText.text = goodTrial.ToString();
+        // wait for full head rotation left or right
+        yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
+        PlayBeep(0.7f); // low pitch metronom sound
+        if ((Time.time - lastBeepTime < timingThreshold) || (nextBeepTime - Time.time < timingThreshold))
+        {
+            // if the participant moved in the right time, then increase the good trial counter
+            goodTrial++;
+            goodTrialText.text = goodTrial.ToString();
 
-            }
+        }
+        else
+        {
+            goodTrial = 0;
+            goodTrialText.text = goodTrial.ToString();
+        }
+
         while (goodTrial < 10)
         {
             if (GetYawRotation() > 0f) // if the head is rotated to the right
@@ -178,7 +192,7 @@ public class SwimTest : MonoBehaviour
                 yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
             }
             PlayBeep(0.7f); // low pitch metronom sound
-            if ((Time.time - lastBeepTime < timingThreshold) || (Time.time - nextBeepTime < timingThreshold))
+            if ((Time.time - lastBeepTime < timingThreshold) || (nextBeepTime - Time.time < timingThreshold))
             {
                 // if the participant moved in the right time, then increase the good trial counter
                 goodTrial++;
@@ -193,7 +207,12 @@ public class SwimTest : MonoBehaviour
             }
         }
         Debug.Log("Headmovement training completed.");
-        eyeTracker.StopRecording();
+        StopCoroutine(metronomeCoroutine);
+        if(eyeTracker != null)
+        {
+            eyeTracker.StopRecording();
+        }
+        
     }
 
     public IEnumerator RunTest()
