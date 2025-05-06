@@ -185,6 +185,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3855200472530153861, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
       insertIndex: 4
       addedObject: {fileID: 173026031}
+    - targetCorrespondingSourceObject: {fileID: 3855200472530153861, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 173026037}
   m_SourcePrefab: {fileID: 100100000, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
 --- !u!1 &173026028 stripped
 GameObject:
@@ -217,6 +220,19 @@ MonoBehaviour:
   showFixationTarget: 1
   cutoff: 80
   loadFiles: 1
+--- !u!114 &173026037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 173026028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9354dc570f0560a4098cf33c134ea84e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 150
 --- !u!1 &673064915
 GameObject:
   m_ObjectHideFlags: 0
@@ -362,7 +378,7 @@ MonoBehaviour:
   magnificationStimulusLevels:
   - 1
   - 0.75
-  - 1.25
+  - 1.5
   radialStimulisLevels:
   - 0
   headRotationThreshold: 10

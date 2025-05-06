@@ -4,21 +4,26 @@ using UnityEngine;
 
 public class CamMover : MonoBehaviour
 {
-    public float speed = 1500f; // speed of the camera rotation
+    public float speed = 0.1f; // speed of the camera rotation
+   
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        // Get the mouse input
-        float mouseX = Input.GetAxis("Mouse X");
-        float mouseY = Input.GetAxis("Mouse Y");
-
-        // Rotate the camera based on mouse input
-        transform.Rotate(Vector3.up, mouseX * speed * Time.deltaTime);
+        // while w is pressed, rotate the camera around the y-axis
+        if (Input.GetKey(KeyCode.A))
+        {
+            transform.Rotate(Vector3.up, -speed*Time.deltaTime);
+        }
+        // while d is pressed, rotate the camera around the y-axis in the opposite direction
+        if (Input.GetKey(KeyCode.D))
+        {
+            transform.Rotate(Vector3.up, speed*Time.deltaTime);
+        }
     }
 }

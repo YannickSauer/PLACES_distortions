@@ -53,7 +53,7 @@ public class GunController : MonoBehaviour
             if (balloon != null)
             {
                 // pop the balloon
-                balloon.Pop();
+                balloon.Pop(transform.TransformDirection(Vector3.forward));
             }
         }
     }

@@ -19,7 +19,8 @@ public class SwimTest : MonoBehaviour
     public float timingThreshold = 0.2f; // timing offset allowed for the participant
     public float centerThreshold = 2f;
     public float metronomeFrequency = 1f; // frequency of the metronome in Hz
-    
+
+    private ExperimentManager.AftereffectData aftereffectData;
     public float[] magnificationTrial;
     public float[] radialTrial;
     public float magnification;
@@ -55,14 +56,7 @@ public class SwimTest : MonoBehaviour
         initTargetScale = scene.transform.localScale.x; // assuming all scale components are the same
         AdjustForMagnification();
 
-        // fill the trial variables
-        magnificationTrial = ExperimentPreparation.FillWithSamples(magnificationStimulusLevels, stimulusRepetitions * radialStimulisLevels.Length, 1);
-        radialTrial = ExperimentPreparation.FillWithSamples(radialStimulisLevels, stimulusRepetitions * magnificationStimulusLevels.Length, 1);
-        // randomly permute the trials
-        ExperimentPreparation.RandPermute(magnificationTrial);
-        ExperimentPreparation.RandPermute(radialTrial);
-
-        nTrials = magnificationTrial.Length;
+        
 
         // Create file and write header if it does not exist
         if (!File.Exists(filePath))
@@ -82,9 +76,10 @@ public class SwimTest : MonoBehaviour
         if (expManager == null)
         {
             Debug.Log("Experiment manager not found. Starting the experiment by itself.");
-            
-            StartCoroutine(RunTraining());
+            aftereffectData = new ExperimentManager.AftereffectData(); // start with default values    
+            StartCoroutine(RunTest());
         }
+        aftereffectData = ExperimentManager.Instance.aftereffectData; // get the aftereffect data from the experiment manager
     }
 
     void AdjustForMagnification()
@@ -215,8 +210,16 @@ public class SwimTest : MonoBehaviour
         
     }
 
-    public IEnumerator RunTest()
+    public IEnumerator RunTest(int nTrialsBlock = -1) // run a block of nTrialsBlock Trials. If 
     {
+        if (nTrialsBlock == -1)
+        {
+            nTrialsBlock = aftereffectData.nTrials;
+        }
+        // set training GameObject to inactive
+        var trainingGameObj = GameObject.Find("Training");
+        trainingGameObj.SetActive(false);
+
         Debug.Log("Starting aftereffect test.");
         //eyeTracker.StartRecording(fileName);
         //TODO: fill the trial variables        
@@ -233,11 +236,11 @@ public class SwimTest : MonoBehaviour
         initialRotation = Camera.main.transform.rotation;
         initialPosition = Camera.main.transform.position;
 
-        for (int trial = 0; trial < nTrials; trial++)
-        {
+        for (int trial = 0; trial < nTrialsBlock; trial++)
+        {    
             // set the trial distortion
-            magnification = magnificationTrial[trial];
-            radial = radialTrial[trial];
+            magnification = magnificationTrial[aftereffectData.currentTrial];
+            radial = radialTrial[aftereffectData.currentTrial];
             dotManager.distortionParam.x = magnification;
             dotManager.distortionParam.y = radial;
             
@@ -251,31 +254,46 @@ public class SwimTest : MonoBehaviour
 
             if (eyeTracker != null)
             {
-                eyeTracker.WriteMessage("StartTestTrial" + currentTrial);
+                eyeTracker.WriteMessage("StartTestTrial" + aftereffectData.currentTrial);
             }
             // save initial rotation of the camera
-            
-            // wait for full head rotation left
-            yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
+            // wait for full head rotation left or right
+            yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
             PlayBeep();
 
-            // Wait for head to rotate right
-            yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
-            PlayBeep();
+            if (GetYawRotation() > 0f) // initial rotation is to the right
+            {
+                // wait for head to rotate left
+                yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
+                PlayBeep();
+                // wait for head to rotate right
+                yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
+                PlayBeep();
+                // wait for head to rotate left
+                yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
+                PlayBeep();
 
-            // wait for full head rotation left
-            yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
-            PlayBeep();
+            }
+            else // if the head is rotated to the left
+            {
+               
+                // wait for head to rotate right
+                yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
+                PlayBeep();
+                // wait for head to rotate left
+                yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
+                PlayBeep();
+                // wait for head to rotate right
+                yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
+                PlayBeep();
+            }
 
-            // Wait for head to rotate right
-            yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
-            PlayBeep();
 
             // Wait for head to return to center
             yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) < centerThreshold);
             if (eyeTracker != null)
             {
-                eyeTracker.WriteMessage("StopTestTrial" + currentTrial);
+                eyeTracker.WriteMessage("StopTestTrial" + aftereffectData.currentTrial);
             }
             PlayBeep();
 
@@ -287,26 +305,25 @@ public class SwimTest : MonoBehaviour
             // you can check which key was pressed
             if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
-                SaveTrial("L");
+                SaveTrial(1);
             }
             else if (Input.GetKeyDown(KeyCode.RightArrow))
             {
-                SaveTrial("R");
+                SaveTrial(2);
             }
 
             //GetComponent<Renderer>().material.color = Color.green;
             yield return new WaitForSeconds(startWaitTime);
-            currentTrial++;
+            aftereffectData.currentTrial++;
         }
         Debug.Log("Aftereffect test completed.");
         if (eyeTracker != null)
         {
             eyeTracker.StopRecording();
         }
-        
     }
 
-    void SaveTrial(string answer)
+    void SaveTrial(int answer)
     {
         // save the trial data
         string trialData = currentTrial + "," + Time.time + "," + magnificationTrial[currentTrial] + "," + radialTrial[currentTrial] + "," + answer;
@@ -314,7 +331,7 @@ public class SwimTest : MonoBehaviour
         {
             writer.WriteLine(trialData);
         }
-
+        aftereffectData.answerTrial[aftereffectData.currentTrial] = answer; 
     }
 
 

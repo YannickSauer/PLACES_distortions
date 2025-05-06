@@ -1,10 +1,13 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 public class Balloon : MonoBehaviour
 {
     public static float minGrowSpeed = 0.001f; // minimum grow speed for all balloons
     public static float maxGrowSpeed = 0.003f; // maximum grow speed for all balloons
+    public static float movingProbability = 0.7f; // probability of moving balloon
+    public static float movingSpeed = 1f; // minimum size for all balloons
     public float maxSize = 0.5f; // threshold for explosion
     public int balloonId;
     public int groupId;
@@ -17,6 +20,23 @@ public class Balloon : MonoBehaviour
     void Start()
     {
         growSpeed = UnityEngine.Random.Range(minGrowSpeed, maxGrowSpeed);
+        if (UnityEngine.Random.value < movingProbability)
+        {
+            // make the balloon move in a random direction
+            Vector3 randomDirection = UnityEngine.Random.insideUnitSphere;
+            randomDirection.y = 0; // keep it on the same plane
+            // use rigidbody to move the balloon
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = false; // make sure the rigidbody is not kinematic
+                rb.velocity = randomDirection * movingSpeed; // set the velocity to a random direction
+            }
+            else
+            {
+                Debug.LogWarning("Rigidbody not found on balloon. Moving balloon will not work.");
+            }
+        }
     }
 
     void Update()
@@ -24,6 +44,7 @@ public class Balloon : MonoBehaviour
         if (!isActive) return;
 
         transform.localScale += Vector3.one * growSpeed * Time.deltaTime;
+
 
         if (transform.localScale.x >= maxSize)
         {
@@ -42,7 +63,7 @@ public class Balloon : MonoBehaviour
         }
     }
 
-    public void Pop()
+    public void Pop(Vector3 direction)
     {
         if (!isActive) return;
 
@@ -58,6 +79,25 @@ public class Balloon : MonoBehaviour
         // }
         // Invoke the OnPopped event so that the AdaptationTask can handle it (e.g. update score)
         OnPopped?.Invoke(this);
+        StartCoroutine(PopEffect(direction));
+    }
+
+    private IEnumerator PopEffect(Vector3 direction)
+    {
+        
+        // scale down the balloon to zero over 0.5 seconds
+        float duration = 0.3f;
+        float elapsed = 0f;
+        Vector3 initialScale = transform.localScale;
+        while (elapsed < duration)
+        {
+            transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, elapsed / duration);
+            // move the balloon in the direction of the hit normal
+            transform.position += direction * 3* Time.deltaTime;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        // destroy the balloon after the effect
         Destroy(gameObject);
     }
 
@@ -76,6 +116,7 @@ public class Balloon : MonoBehaviour
         // Invoke the OnPopped event so that the AdaptationTask can handle it (e.g. update score)
         isActive = false;
         OnExplode?.Invoke(this);
+        
         Destroy(gameObject);
     }
 }

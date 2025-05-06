@@ -7,18 +7,56 @@ public class ExperimentManager : MonoBehaviour
 {
     public static ExperimentManager Instance { get; private set; }
     public int subjectID = 0;
-    public int baselineTrials = 4;
-    public int aftereffectTestTrials = 4;
-    public int adaptationTrials = 4;
-    public float preBaseLineDuration = 5f;
     public float adaptationDuration = 120f; // in seconds; duration for each trial
-    public string adaptationScene = "AdaptationScene";
-    public string vorScene = "AftereffectScene";
-    public string swayScene = "RanDot";
-    private int currentTrial = 0;
+
+    [System.Serializable]
+    public class AdaptationPhaseSettings
+    {
+        public float preBaselineDuration; // which levels of magnification to use for the adaptation phase
+        public float adaptationDuration; // in seconds; duration for each trial
+        public float topUpDuration; // in seconds; duration for each top-up-trial
+        public float stimulusLevel;
+        public float durationPerTrial;
+        public string sceneName; // AdaptationScene
+    }
+    [System.Serializable]
+    public class AdaptationPhaseData
+    {
+        public float score; // current score of the adaptation phase
+        public bool distorted; // in which experiment phase are we: distorted already or not
+    }    
+    [System.Serializable]
+    public class AftereffectSettings // subcategory of settings for the aftereffect phase
+    {
+        public float[] magnificationStimulusLevels; // which levels of magnification to use for the aftereffect phase
+        public float[] radialStimulisLevels; // which levels of radial distortions to use for the aftereffect phase
+        public int samplingFrequency; // how many trials for each stimulus level for the aftereffect phase
+        public int topupFrequency; // after how many trials to repeat the adaptation phase
+        public string sceneName; // RanDot
+    }
+    
+    public class AftereffectData // stores trial-by-trial data for the aftereffect phase
+    {
+        public int currentTrial; // current trial number
+        public int nTrials; // number of trials for the aftereffect phase
+        public float[] magnificationTrial; // 
+        public float[] radialTrial;
+        public int[] answerTrial;
+    }
+    
+    [Header("Experiment Settings")]
+    
+    public AdaptationPhaseSettings adaptationPhaseSettings;
+    public AftereffectSettings aftereffectSettings;
+    
+    [Header("Live Data (Debugging)")]
+
+    public AdaptationPhaseData adaptationPhaseData;
+
+    public AftereffectData aftereffectData ; // stores trial-by-trial data for the aftereffect phase
+
     private string resultsPath;
     private bool isRunning = false;
-
     private Distortions distortions;
 
     void Awake()
@@ -42,6 +80,22 @@ public class ExperimentManager : MonoBehaviour
         // output = "./measurements/subjectID/results.csv"
         resultsPath = Path.Combine(Application.dataPath, "measurements", subjectID.ToString(), "results.csv");
         Directory.CreateDirectory(Path.GetDirectoryName(resultsPath));
+
+        // create the aftereffect data class inst with zeros
+        // fill the trial variables
+        aftereffectData = new AftereffectData();
+        aftereffectData.currentTrial = 0;
+        float[] magnificationTrial = ExperimentPreparation.FillWithSamples(aftereffectSettings.magnificationStimulusLevels,
+                                                                           aftereffectSettings.samplingFrequency * aftereffectSettings.radialStimulisLevels.Length, 1);
+        float[] radialTrial = ExperimentPreparation.FillWithSamples(aftereffectSettings.radialStimulisLevels, aftereffectSettings.samplingFrequency * aftereffectSettings.magnificationStimulusLevels.Length, 1);
+        // randomly permute the trials
+        ExperimentPreparation.RandPermute(magnificationTrial);
+        ExperimentPreparation.RandPermute(radialTrial);
+        aftereffectData.magnificationTrial = magnificationTrial;
+        aftereffectData.radialTrial = radialTrial;
+        aftereffectData.nTrials = magnificationTrial.Length;
+        aftereffectData.answerTrial = new int[aftereffectData.nTrials];
+
     }
 
     private void Update()
@@ -56,21 +110,41 @@ public class ExperimentManager : MonoBehaviour
     {
         Debug.Log("Starting experiment...");
         isRunning = true;
-
-        yield return StartCoroutine(AdaptationPhase(preBaseLineDuration)); // adaptation phase without distortions
-        yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
-        yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
-        //yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
+        ////////////////////
+        // Baseline phase///
+        ////////////////////
+        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.preBaselineDuration)); // adaptation phase without distortions
+        //yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
+        //yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
+        
+        // //  SWIM EFFECT SCENE // //
+        // switch to sway scene and run topupFrequency trials
+        while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
+        {
+            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
+        }
+        
+        //////////////////////
+        // Adaptation phase //
+        //////////////////////
+        
         // turn distortions on
-        distortions.active = true;
-        // repeated adaptation phase + test phase
-        while (currentTrial < adaptationTrials)
-        {        
+        adaptationPhaseData.distorted = true;
+        distortions.active = true; // TODO replace
+        
+        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration)); // adaptation phase with distortions
+
+
+        ///////////////////////
+        // Aftereffect phase //
+        ///////////////////////
+
+        while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
+        {   
+            yield return StartCoroutine(SwimTestPhase());
+            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
             yield return StartCoroutine(AdaptationPhase(adaptationDuration));
-            yield return StartCoroutine(VORTestPhase(aftereffectTestTrials, false)); // baseline trials with target
-            yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true));
-            //yield return StartCoroutine(SwimTestPhase()); // switch to sway scene
-            currentTrial++;
         }
         Debug.Log("Experiment completed.");
         distortions.active = false;
@@ -79,16 +153,49 @@ public class ExperimentManager : MonoBehaviour
 
     private IEnumerator AdaptationPhase(float adaptationDuration)
     {
-        yield return StartCoroutine(SwitchScene(adaptationScene));
+        yield return StartCoroutine(SwitchScene(adaptationPhaseSettings.sceneName)); // switch to adaptation scene
 
-        // TODO: do same stuff as in TestPhase() for scene loading and task starting
+        // trun distortions on if adaptationPhaseData shows so
+        if (adaptationPhaseData.distorted)
+        {
+            distortions.active = true;
+        }
+        else
+        {
+            distortions.active = false;
+        }
+
+        // Find the GameObject that contains the script responsible for the coroutine
+        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+
+        if (testManagerObject == null)
+        {
+            Debug.LogError("SceneTestManager tagged object not found!");
+            yield break; // Stop execution if the object isn't found
+        }
+
+        AdaptationTask testManager = testManagerObject.GetComponent<AdaptationTask>();
+
+        if (testManager == null)
+        {
+            Debug.LogError("VORTest script not found on the object!");
+            
+        }
+        else
+        {
+            testManager.duration = adaptationDuration;
+        }
+
+        // Start the test coroutine and wait for it to finish
         yield return new WaitForSeconds(adaptationDuration);
     }
 
     private IEnumerator VORTestPhase(int nTrials, bool invisibleTarget)
     {
-        yield return StartCoroutine(SwitchScene(vorScene));
+        yield return StartCoroutine(SwitchScene(aftereffectSettings.sceneName)); // TODO, this is a new scene
        
+        // TODO: add distortions here, if needed
+
         // Find the GameObject that contains the script responsible for the coroutine
         GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
 
@@ -108,14 +215,14 @@ public class ExperimentManager : MonoBehaviour
 
         // Start the test coroutine and wait for it to finish
         yield return StartCoroutine(testManager.RunTest(nTrials, invisibleTarget));
-
-        // Continue with the experiment
-        SaveResults(currentTrial);
     }
 
-    private IEnumerator SwimTestPhase()
+    private IEnumerator SwimTestPhase(int ntrials = -1)
     {
-        yield return StartCoroutine(SwitchScene(swayScene));
+        yield return StartCoroutine(SwitchScene(aftereffectSettings.sceneName));
+
+        // set distortions off, always, because we use the random dot simulation
+        distortions.active = false;
        
         // Find the GameObject that contains the script responsible for the coroutine
         GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
@@ -135,10 +242,14 @@ public class ExperimentManager : MonoBehaviour
         }
 
         // Start the test coroutine and wait for it to finish
-        yield return StartCoroutine(testManager.RunTest());
-
-        // Continue with the experiment
-        SaveResults(currentTrial);
+        if (ntrials == -1) // if no number of trials is given, call without a number of trials
+        {
+            yield return StartCoroutine(testManager.RunTest());
+        }
+        else // if a number of trials is given, run that number of trials
+        {
+            yield return StartCoroutine(testManager.RunTest(ntrials));
+        }
     }
 
     private IEnumerator SwitchScene(string sceneName)

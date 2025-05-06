@@ -7,17 +7,26 @@ using TMPro;
 public class AdaptationTask : MonoBehaviour
 {
     public GameObject balloonPrefab;
+    public GameObject pointsPrefab;
+    public GameObject explosionPrefab; 
+    public int negativeScore = 5;
+    public float highPointsThreshold = 0.2f; // threshold for high points
+    public int lowPoints = 1;
+    public int highPoints = 3;
     private int numberOfGroups;
     public int balloonsPerGroup = 3;
     public float groupRadius = 1f;
     public float initBalloonSize = 0.001f;
     public float minGrowSpeed = 0.001f;
     public float maxGrowSpeed = 0.003f;
+    public float duration = 120f; // in seconds; duration of the test
+    private float timer = 0f; // timer for the test
     public List<Vector3> balloonGroupPositions = new List<Vector3>();
     public List<Color> balloonGroupColors = new List<Color>();
     private List<Balloon> balloons = new List<Balloon>();
     private int score = 0;
     private TMP_Text scoreText;
+    private TMP_Text timerText;
 
     void Start()
     {
@@ -29,9 +38,13 @@ public class AdaptationTask : MonoBehaviour
             return;
         }
         SpawnAllBalloons();
+
+        // start the timer
+        timer = Time.time;
         // show score on the TextMeshPro object
         scoreText = GameObject.Find("ScoreText").GetComponent<TMP_Text>();
-        UpdateSoreText();
+        timerText = GameObject.Find("TimerText").GetComponent<TMP_Text>();
+        UpdateTexts();
 
         // set the min and max grow speed for all balloons
         Balloon.minGrowSpeed = minGrowSpeed;
@@ -65,35 +78,73 @@ public class AdaptationTask : MonoBehaviour
         balloons.Add(balloon);
     }
 
-    private void UpdateSoreText()
+    private void UpdateTexts()
     {
         if (scoreText != null)
         {
             scoreText.text = "Score: " + score;
         }
-        else
+        
+
+        if (timerText != null)
         {
-            Debug.LogError("Score TextMeshPro object not found.");
+            timerText.text = "Time: " + Mathf.RoundToInt(duration - (Time.time-timer)) + "s";
         }
+        
     }
 
     void HandleBalloonExploded(Balloon b)
-    {
-        score -= 10;
-        UpdateSoreText();
+    { 
+        score -= negativeScore;
+        // Instantiate explosion effect at the balloon's position
+        GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
+        // set the color of the explosion to the color of the balloon
+        ParticleSystem.MainModule main = explosion.GetComponent<ParticleSystem>().main;
+        // play the particle system
+        main.startColor = b.GetComponent<Renderer>().material.color;
+        explosion.GetComponent<ParticleSystem>().Play();
+        SpawnPoints(b.transform.position, -negativeScore);
         Debug.Log("Balloon exploded! Score: " + score);
+        // start score animation
+
         // spawn a new balloon in the same group
         SpawnBalloon(b.groupId, b.balloonId);
     }
 
     void HandleBalloonPopped(Balloon b)
     {
-        score += 1;
-        UpdateSoreText();
+        int points;
+        if (b.transform.localScale.x < highPointsThreshold)
+        {
+            points = highPoints;
+        }
+        else 
+        {
+            points = lowPoints;
+        }
+        score += points;
+        SpawnPoints(b.transform.position, points);
         Debug.Log("Balloon popped! Score: " + score);
         // spawn a new balloon in the same group
         SpawnBalloon(b.groupId, b.balloonId);
 
+    }
+
+    void SpawnPoints(Vector3 position, int points)
+    {
+        GameObject pointsObj = Instantiate(pointsPrefab, position + 0.2f * Vector3.up, Quaternion.identity);
+        // get child object with text component
+        TMP_Text pointsText = pointsObj.transform.GetChild(0).GetComponent<TMP_Text>();
+        pointsText.text = "+" + points.ToString();
+        // set text color depending on the points
+        if (points > 0)
+        {
+            pointsText.color = Color.green;
+        }
+        else
+        {
+            pointsText.color = Color.red;
+        }
     }
 
     // For testing: destroy balloon with mouse click (or raycast in VR)
@@ -108,11 +159,19 @@ public class AdaptationTask : MonoBehaviour
                 Balloon balloon = hit.collider.GetComponent<Balloon>();
                 if (balloon != null) {
                     Debug.Log("Balloon Hit");
-                    balloon.Pop();
+                    balloon.Pop(ray.direction);
                 }
             }
         }
 
+        UpdateTexts();
+        // check if the time is up
+        if (Time.time - timer >= duration)
+        {
+            Debug.Log("Time's up! Final score: " + score);
+            // handle end of the game, e.g. show results or go to next scene
+            // SceneManager.LoadScene("NextScene");
+        }
         // extenstions:
         // 1. Add a timer to the game
         // 2. Increase the speed of the balloons over time
