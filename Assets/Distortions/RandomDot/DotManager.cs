@@ -65,9 +65,11 @@ public class DotManager : MonoBehaviour
         Camera.main.backgroundColor = backgroundColor;
 
         // get scene
-        scene = GameObject.Find("Scene");  
-        scene.SetActive(true);
-
+        scene = GameObject.Find("Scene");
+        if (scene != null)
+        { 
+            scene.SetActive(true);
+        }
         // get distortion manager
         distortionManager = GetComponent<Distortions>(); // assume same GaneObject for distortions
 
@@ -134,8 +136,10 @@ public class DotManager : MonoBehaviour
             dotMaterial.SetVector("_DistortionParam", distortionParam);
             dotMaterial.SetFloat("_Alpha", alpha);
             Graphics.DrawProcedural(dotMaterial, bounds, MeshTopology.Triangles, meshTriangles.count, nDots);
-            
-            scene.SetActive(showScene);
+            if (scene != null)
+            {
+                scene.SetActive(showScene);
+            }
         }
     }
 
@@ -203,7 +207,11 @@ public class DotManager : MonoBehaviour
     Vector4[] ProjectOnScene(Vector2[] dots)
     {
         Vector4[] dots4d = new Vector4[dots.Length];
-        scene.SetActive(true);
+        if (scene != null)
+        {
+            scene.SetActive(true);
+        }
+        
         for (int i = 0; i < dots.Length; i++)
         {   
             RaycastHit hit;

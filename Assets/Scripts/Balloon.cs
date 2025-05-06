@@ -45,6 +45,7 @@ public class Balloon : MonoBehaviour
 
         transform.localScale += Vector3.one * growSpeed * Time.deltaTime;
 
+        
 
         if (transform.localScale.x >= maxSize)
         {

@@ -96,6 +96,9 @@ public class ExperimentManager : MonoBehaviour
         aftereffectData.nTrials = magnificationTrial.Length;
         aftereffectData.answerTrial = new int[aftereffectData.nTrials];
 
+        // set random dots to inactive
+        Camera.main.GetComponent<DotManager>().active = false;
+        
     }
 
     private void Update()

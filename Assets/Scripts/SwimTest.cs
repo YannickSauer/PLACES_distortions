@@ -239,8 +239,8 @@ public class SwimTest : MonoBehaviour
         for (int trial = 0; trial < nTrialsBlock; trial++)
         {    
             // set the trial distortion
-            magnification = magnificationTrial[aftereffectData.currentTrial];
-            radial = radialTrial[aftereffectData.currentTrial];
+            magnification = aftereffectData.magnificationTrial[aftereffectData.currentTrial];
+            radial = aftereffectData.radialTrial[aftereffectData.currentTrial];
             dotManager.distortionParam.x = magnification;
             dotManager.distortionParam.y = radial;
             
@@ -326,7 +326,7 @@ public class SwimTest : MonoBehaviour
     void SaveTrial(int answer)
     {
         // save the trial data
-        string trialData = currentTrial + "," + Time.time + "," + magnificationTrial[currentTrial] + "," + radialTrial[currentTrial] + "," + answer;
+        string trialData = currentTrial + "," + Time.time + "," + aftereffectData.magnificationTrial[aftereffectData.currentTrial] + "," + aftereffectData.radialTrial[aftereffectData.currentTrial] + "," + answer;
         using (StreamWriter writer = new StreamWriter(filePath, true))
         {
             writer.WriteLine(trialData);
