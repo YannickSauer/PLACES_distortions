@@ -8,6 +8,8 @@ public class ExperimentManager : MonoBehaviour
     public static ExperimentManager Instance { get; private set; }
     public int subjectID = 0;
     public float adaptationDuration = 120f; // in seconds; duration for each trial
+    public float adaptationMagnification = 1.0f;
+    public float adaptationRadial = 0.0f;
 
     [System.Serializable]
     public class AdaptationPhaseSettings
@@ -15,8 +17,6 @@ public class ExperimentManager : MonoBehaviour
         public float preBaselineDuration; // which levels of magnification to use for the adaptation phase
         public float adaptationDuration; // in seconds; duration for each trial
         public float topUpDuration; // in seconds; duration for each top-up-trial
-        public float stimulusLevel;
-        public float durationPerTrial;
         public string sceneName; // AdaptationScene
     }
     [System.Serializable]
@@ -76,13 +76,23 @@ public class ExperimentManager : MonoBehaviour
     void Start()
     {
         distortions = Camera.main.gameObject.GetComponent<Distortions>();
+        distortions.magn = adaptationMagnification;
+        distortions.radial = adaptationRadial;
         distortions.active = false;
         // output = "./measurements/subjectID/results.csv"
         resultsPath = Path.Combine(Application.dataPath, "measurements", subjectID.ToString(), "results.csv");
         Directory.CreateDirectory(Path.GetDirectoryName(resultsPath));
 
-        // create the aftereffect data class inst with zeros
         // fill the trial variables
+        aftereffectData = GetAftereffectData();
+
+        // set random dots to inactive
+        Camera.main.GetComponent<DotManager>().active = false;
+        
+    }
+
+    private AftereffectData GetAftereffectData()
+    {
         aftereffectData = new AftereffectData();
         aftereffectData.currentTrial = 0;
         float[] magnificationTrial = ExperimentPreparation.FillWithSamples(aftereffectSettings.magnificationStimulusLevels,
@@ -95,10 +105,7 @@ public class ExperimentManager : MonoBehaviour
         aftereffectData.radialTrial = radialTrial;
         aftereffectData.nTrials = magnificationTrial.Length;
         aftereffectData.answerTrial = new int[aftereffectData.nTrials];
-
-        // set random dots to inactive
-        Camera.main.GetComponent<DotManager>().active = false;
-        
+        return aftereffectData;
     }
 
     private void Update()
@@ -125,6 +132,7 @@ public class ExperimentManager : MonoBehaviour
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
             yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
         }
         
@@ -134,20 +142,27 @@ public class ExperimentManager : MonoBehaviour
         
         // turn distortions on
         adaptationPhaseData.distorted = true;
-        distortions.active = true; // TODO replace
-        
+        distortions.active = true;
         yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration)); // adaptation phase with distortions
-
+        distortions.active = false;
 
         ///////////////////////
         // Aftereffect phase //
         ///////////////////////
+        
+        // create new trial parameters
+        aftereffectData = GetAftereffectData();
+
 
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {   
-            yield return StartCoroutine(SwimTestPhase());
+            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
-            yield return StartCoroutine(AdaptationPhase(adaptationDuration));
+            // return to adaptation scene for top-up with distortions
+            distortions.active = true;
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
+            distortions.active = false;
         }
         Debug.Log("Experiment completed.");
         distortions.active = false;

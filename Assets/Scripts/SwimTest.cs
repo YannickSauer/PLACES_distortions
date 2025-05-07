@@ -11,10 +11,6 @@ public class SwimTest : MonoBehaviour
     public string eyeTrackerFileName = "swimTest_gaze.csv";
     public float targetDistance = 10f;
     public bool invisibleTarget = false;
-    public int nTrials = 5; // number of trials
-    public float[] magnificationStimulusLevels = { 0.8f, 0.9f, 1f, 1.1f, 1.2f }; // visual angle of the target
-    public float[] radialStimulisLevels = { 0.0f }; // visual angle of the target
-    int stimulusRepetitions = 6; // number of repetitions for each stimulus level
     public float headRotationThreshold = 10f;
     public float timingThreshold = 0.2f; // timing offset allowed for the participant
     public float centerThreshold = 2f;
@@ -26,7 +22,6 @@ public class SwimTest : MonoBehaviour
     public float magnification;
     public float radial;
     private float[] targetHeightPerTrial;
-    public int currentTrial = 0;
     private Quaternion initialRotation; // save initial rotation of the camera for each trial
     private Vector3 initialPosition;
     private EyeTrackingToolbox eyeTracker;
@@ -56,7 +51,7 @@ public class SwimTest : MonoBehaviour
         initTargetScale = scene.transform.localScale.x; // assuming all scale components are the same
         AdjustForMagnification();
 
-        
+        filePath = "swimTest_" + ExperimentManager.Instance.subjectID + ".csv";
 
         // Create file and write header if it does not exist
         if (!File.Exists(filePath))
@@ -153,7 +148,7 @@ public class SwimTest : MonoBehaviour
        
         if (eyeTracker != null)
         {
-            eyeTracker.WriteMessage("StartTrainingTrial" + currentTrial);
+            eyeTracker.WriteMessage("StartTrainingTrial" + aftereffectData.currentTrial);
         }
         // save initial rotation of the camera
             
@@ -326,7 +321,7 @@ public class SwimTest : MonoBehaviour
     void SaveTrial(int answer)
     {
         // save the trial data
-        string trialData = currentTrial + "," + Time.time + "," + aftereffectData.magnificationTrial[aftereffectData.currentTrial] + "," + aftereffectData.radialTrial[aftereffectData.currentTrial] + "," + answer;
+        string trialData = aftereffectData.currentTrial + "," + Time.time + "," + aftereffectData.magnificationTrial[aftereffectData.currentTrial] + "," + aftereffectData.radialTrial[aftereffectData.currentTrial] + "," + answer;
         using (StreamWriter writer = new StreamWriter(filePath, true))
         {
             writer.WriteLine(trialData);

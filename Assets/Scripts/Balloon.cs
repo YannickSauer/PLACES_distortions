@@ -8,7 +8,7 @@ public class Balloon : MonoBehaviour
     public static float maxGrowSpeed = 0.003f; // maximum grow speed for all balloons
     public static float movingProbability = 0.0f; // probability of moving balloon
     public static float movingSpeed = 1f; // minimum size for all balloons
-    public float maxSize = 0.5f; // threshold for explosion
+    public static float maxSize = 0.5f; // threshold for explosion
     public int balloonId;
     public int groupId;
     public event Action<Balloon> OnExplode;

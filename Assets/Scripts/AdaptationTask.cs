@@ -8,22 +8,35 @@ public class AdaptationTask : MonoBehaviour
 {
     public GameObject balloonPrefab;
     public GameObject pointsPrefab;
-    public GameObject explosionPrefab; 
-    public int negativeScore = 5;
+    public GameObject explosionPrefab;
+    [Header("Balloon Settings")]
+    public int nTargetBalloons;
+    public int nDistractorBalloons;
+    public float explodeSize; // at which size should the balloon explode
+    public int explodeScore = 5;
+    public int wrongBaloonScore = 5;
     public float highPointsThreshold = 0.2f; // threshold for high points
     public int lowPoints = 1;
     public int highPoints = 3;
-    private int numberOfGroups;
-    public int balloonsPerGroup = 3;
-    public float groupRadius = 1f;
+    
     public float initBalloonSize = 0.001f;
     public float minGrowSpeed = 0.001f;
     public float maxGrowSpeed = 0.003f;
-    public float spawnDelay = 2f; // delay between spawning balloons
+
+    public List<Color> balloonColors = new List<Color>();
+
+
+
+    [Header("Spawn Settings")]
+    public float spawnDelay = 2f; // delay between destruction of balloon and spawning a new one
+    private float timer = 0f; // timer for the current run
+    public Vector3 spawnAreaLowerBounds;
+    public Vector3 spawnAreaUpperBounds;
+    public float playerDistance; // minimum distnace to player
+    public float prevSpawnDistance; // minimum distance to previous spawn location
+
+    [Header("Debug Data")]
     public float duration = 120f; // in seconds; duration of the test
-    private float timer = 0f; // timer for the test
-    public List<Vector3> balloonGroupPositions = new List<Vector3>();
-    public List<Color> balloonGroupColors = new List<Color>();
     private List<Balloon> balloons = new List<Balloon>();
     private int score = 0;
     private TMP_Text scoreText;
@@ -31,11 +44,10 @@ public class AdaptationTask : MonoBehaviour
 
     void Start()
     {
-        numberOfGroups = balloonGroupPositions.Count; // get number of groups from the list of defined group positions
         // check if enough colors are provided
-        if (balloonGroupColors.Count < numberOfGroups)
+        if (balloonColors.Count < 2)
         {
-            Debug.LogError("Not enough colors provided for the balloon groups.");
+            Debug.LogError("At least two colors are necessary.");
             return;
         }
         SpawnAllBalloons();
@@ -50,38 +62,57 @@ public class AdaptationTask : MonoBehaviour
         // set the min and max grow speed for all balloons
         Balloon.minGrowSpeed = minGrowSpeed;
         Balloon.maxGrowSpeed = maxGrowSpeed;
+        Balloon.maxSize = explodeSize;
     }
 
     private void SpawnAllBalloons()
     {
-        for (int groupId = 0; groupId < numberOfGroups; groupId++)
+        // spawn target balloons
+        for (int balloonId = 0; balloonId < nTargetBalloons; balloonId++)
         {
-            for (int i = 0; i < balloonsPerGroup; i++)
-            {
                // Start coroutine to spawn balloons with a delay
                 float delay = Random.Range(0f, 1f); // random delay for each balloon
-                StartCoroutine(SpawnBalloon(delay, groupId, i));
-            }
+                StartCoroutine(SpawnBalloon(delay, 0, balloonId,Camera.main.transform.position));
+        }
+        
+        // spawn distractor balloons
+        for (int balloonId = 0; balloonId < nDistractorBalloons; balloonId++)
+        {
+            // Start coroutine to spawn balloons with a delay
+            float delay = Random.Range(0f, 1f); // random delay for each balloon
+            StartCoroutine(SpawnBalloon(delay, 1, balloonId, Camera.main.transform.position));
         }
     }
 
-    private IEnumerator SpawnBalloon(float delay, int groupId, int balloonId)
+    private IEnumerator SpawnBalloon(float delay,int groupId, int balloonId, Vector3 prevLocation)
     {
         // wait for the delay before spawning the balloon
         yield return new WaitForSeconds(delay);
         // spawn the balloon at the group position with a random offset
-        Vector3 groupCenter = balloonGroupPositions[groupId];
-        Vector3 offset = Random.insideUnitSphere * 0.5f;
-        offset.y = 1 + Random.Range(-0.5f, 0.5f); // keep the y position within a certain range
-        GameObject balloonObj = Instantiate(balloonPrefab, groupCenter + offset, Quaternion.identity);
+        Vector3 pos = Camera.main.transform.position;
+        while ((Vector3.Distance(pos,Camera.main.transform.position) < playerDistance) || (Vector3.Distance(pos, prevLocation) < prevSpawnDistance))
+        {
+            pos = RandomPointInBounds(spawnAreaLowerBounds, spawnAreaUpperBounds);
+        }
+
+        GameObject balloonObj = Instantiate(balloonPrefab, pos, Quaternion.identity);
         
         Balloon balloon = balloonObj.GetComponent<Balloon>();
-        balloon.Initialize(groupId,balloonId,balloonGroupColors[groupId]);
+        balloon.Initialize(groupId,balloonId,balloonColors[groupId]);
         balloon.transform.localScale = new Vector3(initBalloonSize, initBalloonSize, initBalloonSize); // set initial size
         balloon.OnExplode += HandleBalloonExploded;
         balloon.OnPopped += HandleBalloonPopped;
 
         balloons.Add(balloon);
+    }
+
+    public Vector3 RandomPointInBounds(Vector3 lowerBounds, Vector3 upperBounds)
+    {
+        return new Vector3(
+            Random.Range(lowerBounds.x, upperBounds.x),
+            Random.Range(lowerBounds.y, upperBounds.y),
+            Random.Range(lowerBounds.z, upperBounds.z)
+        );
     }
 
     private void UpdateTexts()
@@ -94,14 +125,19 @@ public class AdaptationTask : MonoBehaviour
 
         if (timerText != null)
         {
-            timerText.text = "Time: " + Mathf.RoundToInt(duration - (Time.time-timer)) + "s";
+            timerText.text = "Time left: " + Mathf.RoundToInt(duration - (Time.time-timer)) + "s";
         }
         
     }
 
     void HandleBalloonExploded(Balloon b)
     { 
-        score -= negativeScore;
+        if (b.groupId == 0) // this was a target balloon, we get negative points
+        {
+            score -= Mathf.Abs(explodeScore); // take neg abs,then it doesn't matter how the explodeScore was defined (pos or neg)
+            SpawnPoints(b.transform.position, -Mathf.Abs(explodeScore));
+        }
+        /*
         // Instantiate explosion effect at the balloon's position
         GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
         // set the color of the explosion to the color of the balloon
@@ -109,32 +145,39 @@ public class AdaptationTask : MonoBehaviour
         // play the particle system
         main.startColor = b.GetComponent<Renderer>().material.color;
         explosion.GetComponent<ParticleSystem>().Play();
-        SpawnPoints(b.transform.position, -negativeScore);
+        */
         Debug.Log("Balloon exploded! Score: " + score);
         // start score animation
 
         // spawn a new balloon in the same group
         float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
-        SpawnBalloon(delay,b.groupId, b.balloonId);
+        StartCoroutine(SpawnBalloon(delay,b.groupId, b.balloonId, b.transform.position));
     }
 
     void HandleBalloonPopped(Balloon b)
     {
         int points;
-        if (b.transform.localScale.x < highPointsThreshold)
+        if (b.groupId == 0)
         {
-            points = highPoints;
+            if (b.transform.localScale.x < highPointsThreshold)
+            {
+                points = highPoints;
+            }
+            else
+            {
+                points = lowPoints;
+            }
         }
-        else 
+        else
         {
-            points = lowPoints;
+            points = -Mathf.Abs(wrongBaloonScore);
         }
         score += points;
         SpawnPoints(b.transform.position, points);
         Debug.Log("Balloon popped! Score: " + score);
         // spawn a new balloon in the same group
         float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
-        SpawnBalloon(delay,b.groupId, b.balloonId);
+        StartCoroutine(SpawnBalloon(delay, b.groupId, b.balloonId, b.transform.position));
     }
 
     void SpawnPoints(Vector3 position, int points)
@@ -142,7 +185,14 @@ public class AdaptationTask : MonoBehaviour
         GameObject pointsObj = Instantiate(pointsPrefab, position + 0.2f * Vector3.up, Quaternion.identity);
         // get child object with text component
         TMP_Text pointsText = pointsObj.transform.GetChild(0).GetComponent<TMP_Text>();
-        pointsText.text = "+" + points.ToString();
+        if (points > 0)
+        {
+            pointsText.text = "+" + points.ToString();
+        }
+        else
+        {
+            pointsText.text =  points.ToString();
+        }
         // set text color depending on the points
         if (points > 0)
         {
