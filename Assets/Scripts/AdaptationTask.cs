@@ -19,6 +19,7 @@ public class AdaptationTask : MonoBehaviour
     public float initBalloonSize = 0.001f;
     public float minGrowSpeed = 0.001f;
     public float maxGrowSpeed = 0.003f;
+    public float spawnDelay = 2f; // delay between spawning balloons
     public float duration = 120f; // in seconds; duration of the test
     private float timer = 0f; // timer for the test
     public List<Vector3> balloonGroupPositions = new List<Vector3>();
@@ -57,13 +58,18 @@ public class AdaptationTask : MonoBehaviour
         {
             for (int i = 0; i < balloonsPerGroup; i++)
             {
-               SpawnBalloon(groupId, i);
+               // Start coroutine to spawn balloons with a delay
+                float delay = Random.Range(0f, 1f); // random delay for each balloon
+                StartCoroutine(SpawnBalloon(delay, groupId, i));
             }
         }
     }
 
-    private void SpawnBalloon(int groupId, int balloonId)
+    private IEnumerator SpawnBalloon(float delay, int groupId, int balloonId)
     {
+        // wait for the delay before spawning the balloon
+        yield return new WaitForSeconds(delay);
+        // spawn the balloon at the group position with a random offset
         Vector3 groupCenter = balloonGroupPositions[groupId];
         Vector3 offset = Random.insideUnitSphere * 0.5f;
         offset.y = 1 + Random.Range(-0.5f, 0.5f); // keep the y position within a certain range
@@ -108,7 +114,8 @@ public class AdaptationTask : MonoBehaviour
         // start score animation
 
         // spawn a new balloon in the same group
-        SpawnBalloon(b.groupId, b.balloonId);
+        float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
+        SpawnBalloon(delay,b.groupId, b.balloonId);
     }
 
     void HandleBalloonPopped(Balloon b)
@@ -126,8 +133,8 @@ public class AdaptationTask : MonoBehaviour
         SpawnPoints(b.transform.position, points);
         Debug.Log("Balloon popped! Score: " + score);
         // spawn a new balloon in the same group
-        SpawnBalloon(b.groupId, b.balloonId);
-
+        float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
+        SpawnBalloon(delay,b.groupId, b.balloonId);
     }
 
     void SpawnPoints(Vector3 position, int points)
