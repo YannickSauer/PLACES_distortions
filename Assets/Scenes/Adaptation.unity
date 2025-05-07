@@ -2135,7 +2135,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 8.329613, y: 2.0249932, z: 9.265118, w: 2.1882617}
+  m_margin: {x: 8.329613, y: 2.0249932, z: 8.890182, w: 2.1882617}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   _SortingLayer: 0
@@ -2272,12 +2272,20 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: subjectID
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationScene
       value: Adaptation
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: preBaseLineDuration
       value: 20000
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: adaptationMagnification
+      value: 1.25
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.sceneName
@@ -2289,7 +2297,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.topupFrequency
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.topUpDuration
@@ -2297,15 +2305,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.samplingFrequency
-      value: 20
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.adaptationDuration
-      value: 120
+      value: 600
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.preBaselineDuration
-      value: 5
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.radialStimulisLevels.Array.size
@@ -2313,18 +2321,46 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.size
-      value: 3
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[0]
-      value: 0.8
+      value: 0.85
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[1]
-      value: 1
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[2]
+      value: 0.95
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[3]
+      value: 0.975
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[4]
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[5]
+      value: 1.025
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[6]
+      value: 1.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[7]
+      value: 1.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[8]
+      value: 1.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[9]
       value: 1.2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -2364,24 +2400,26 @@ MonoBehaviour:
   balloonPrefab: {fileID: 8187195460368213203, guid: e8177a059d4ac8e43ab3575c1a34e89a, type: 3}
   pointsPrefab: {fileID: 3910300615777960186, guid: b2475451438e58c4fb2a7d0f25b71077, type: 3}
   explosionPrefab: {fileID: 3291173667167369050, guid: 5138b7ce1c3bf064abafe53e4c415274, type: 3}
-  negativeScore: 5
+  nTargetBalloons: 2
+  nDistractorBalloons: 4
+  explodeSize: 0.4
+  explodeScore: 5
+  wrongBaloonScore: 5
   highPointsThreshold: 0.2
   lowPoints: 1
   highPoints: 3
-  balloonsPerGroup: 2
-  groupRadius: 2
-  initBalloonSize: 0.1
-  minGrowSpeed: 0.02
-  maxGrowSpeed: 0.04
+  initBalloonSize: 0.2
+  minGrowSpeed: 0.01
+  maxGrowSpeed: 0.02
+  balloonColors:
+  - {r: 0.5498886, g: 1, b: 0.28773582, a: 0}
+  - {r: 0.2783019, g: 0.6501763, b: 1, a: 0}
+  spawnDelay: 0.5
+  spawnAreaLowerBounds: {x: -3, y: 0.5, z: -0.8}
+  spawnAreaUpperBounds: {x: 2.7, y: 2.5, z: 2.6}
+  playerDistance: 1
+  prevSpawnDistance: 2
   duration: 120
-  balloonGroupPositions:
-  - {x: -2.9, y: 0, z: 0.3}
-  - {x: 0, y: 0, z: 2.4}
-  - {x: 2.5, y: 0, z: 0}
-  balloonGroupColors:
-  - {r: 0.745283, g: 0.13007298, b: 0.13007298, a: 0}
-  - {r: 0.374466, g: 0.42493042, b: 0.9339623, a: 0}
-  - {r: 0.53922796, g: 0.8962264, b: 0.48616055, a: 0}
 --- !u!4 &1448564814
 Transform:
   m_ObjectHideFlags: 0
@@ -3736,7 +3774,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 8.329613, y: 2.0249932, z: 9.265118, w: 2.1882617}
+  m_margin: {x: 8.329613, y: 2.0249932, z: 8.222982, w: 2.1882617}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   _SortingLayer: 0
