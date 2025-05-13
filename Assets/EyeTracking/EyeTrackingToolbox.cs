@@ -49,7 +49,7 @@ public class EyeTrackingToolbox : MonoBehaviour
     }
 
     public bool saveRaycastHitpoint = false; // check for raycast intersection with objects during runtime
-    public string outputFolder = "measurements"; // folder for tracking data
+    public string outputDirectory = "./"; // folder for tracking data
 
     [Header("Object Tracking Settings")]
     // List to hold the variables with dropdown options and associated GameObjects
@@ -190,9 +190,9 @@ public class EyeTrackingToolbox : MonoBehaviour
         {
             gazeTrackingQueue.Clear(); // hier oder in stop tracking
             trackingDataQueue.Clear();
-            objectTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_head.csv");
+            objectTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_head.csv");
             Debug.Log("Object tracking file " + objectTrackingFile);
-            gazeTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_gaze.csv");
+            gazeTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_gaze.csv");
             Debug.Log("Gaze tracking file " + gazeTrackingFile);
             
             isRecording = true;
@@ -204,9 +204,9 @@ public class EyeTrackingToolbox : MonoBehaviour
             while (File.Exists(objectTrackingFile) || File.Exists(gazeTrackingFile))
             {
                 counter++;
-                objectTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_head.csv");
+                objectTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_head.csv");
                 Debug.Log("Object tracking file already exists. Changing filename to " + objectTrackingFile);
-                gazeTrackingFile = Path.Combine(Application.dataPath, outputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
+                gazeTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
             }
             WriteHeader();
             InvokeRepeating("Save", 0.0f, 1.0f); // save data to file every second
@@ -248,9 +248,9 @@ public class EyeTrackingToolbox : MonoBehaviour
     private void WriteHeader()
     {
         // check if output folder exists
-        if (!Directory.Exists(Path.Combine(Application.dataPath, outputFolder)))
+        if (!Directory.Exists(outputDirectory))
         {
-            Directory.CreateDirectory(Path.Combine(Application.dataPath, outputFolder));
+            Directory.CreateDirectory(outputDirectory);
         }
         StreamWriter sw = new StreamWriter(objectTrackingFile);
 

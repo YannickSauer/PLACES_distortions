@@ -13,6 +13,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Touchpad",
+                    "type": "Button",
+                    "id": "5cac384d-4a77-4800-8cf8-cfc9aa371efb",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -24,6 +33,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Fire",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d907e60e-3c3f-4e8a-8fa0-b1d217b461bc",
+                    "path": "<ViveController>{RightHand}/trackpad/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Touchpad",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

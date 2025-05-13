@@ -7,8 +7,7 @@ using TMPro;
 public class SwimTest : MonoBehaviour
 {
     public float startWaitTime = 0.1f; // inter-stimulus interval
-    public string filePath = "swimTest.csv";
-    public string eyeTrackerFileName = "swimTest_gaze.csv";
+    public string outputFolder; // should be set by ExperimentManager
     public float targetDistance = 10f;
     public bool invisibleTarget = false;
     public float headRotationThreshold = 10f;
@@ -31,7 +30,9 @@ public class SwimTest : MonoBehaviour
     public GameObject scene;
     private float lastBeepTime;
     private float nextBeepTime;
-
+    private bool firePressed = false;
+    private bool touchpadPressed = false;
+    private string filePath;
     
     void Start()
     {
@@ -51,7 +52,7 @@ public class SwimTest : MonoBehaviour
         initTargetScale = scene.transform.localScale.x; // assuming all scale components are the same
         AdjustForMagnification();
 
-        filePath = "swimTest_" + ExperimentManager.Instance.subjectID + ".csv";
+        filePath = Path.Combine(ExperimentManager.Instance.outputDirectory, "answers.csv");
 
         // Create file and write header if it does not exist
         if (!File.Exists(filePath))
@@ -295,14 +296,24 @@ public class SwimTest : MonoBehaviour
             // remove the random dots
             dotManager.active = false;
 
+            firePressed = false;
+            touchpadPressed = false;
             // wait for participant answer
-            yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow));
-            // you can check which key was pressed
-            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            yield return new WaitUntil(() => 
+                Input.GetKeyDown(KeyCode.LeftArrow) || 
+                Input.GetKeyDown(KeyCode.RightArrow) || 
+                firePressed || 
+                touchpadPressed);
+            // you can check which key was pressed or OnFire was called
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || firePressed)
             {
                 SaveTrial(1);
             }
-            else if (Input.GetKeyDown(KeyCode.RightArrow))
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || touchpadPressed)
+            {
+                SaveTrial(0);
+            }
+            else
             {
                 SaveTrial(2);
             }
@@ -342,5 +353,15 @@ public class SwimTest : MonoBehaviour
     {
         float deltaAngle = Mathf.DeltaAngle(initialRotation.eulerAngles.y, Camera.main.transform.rotation.eulerAngles.y);
         return deltaAngle;
+    }
+
+    private void OnFire() // called by the fire button of the controller
+    {
+        firePressed = true;
+    }
+
+    private void OnTouchpad() // called by the touchpad of the controller
+    {
+        touchpadPressed = true;
     }
 }

@@ -10,12 +10,18 @@ public class GunController : MonoBehaviour
     public GameObject hitDotPrefab; // Assign in inspector
 
     private GameObject hitDotInstance;
-
+    private AdaptationTask adaptationTask;
     void Start()
     {
         // Create the dot at runtime
         if (hitDotPrefab != null)
             hitDotInstance = Instantiate(hitDotPrefab);
+        
+        adaptationTask = FindObjectOfType<AdaptationTask>();
+        if (adaptationTask == null)
+        {
+            Debug.LogError("AdaptationTask not found in the scene.");
+        }
     }    
 
     // Update is called once per frame
@@ -43,6 +49,10 @@ public class GunController : MonoBehaviour
     
     private void OnFire()
     {
+        if (adaptationTask != null)
+        {
+            adaptationTask.TriggerPressed();
+        }
         Debug.Log("Shoot");
         RaycastHit hit;
         if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out hit))
@@ -57,5 +67,4 @@ public class GunController : MonoBehaviour
             }
         }
     }
-
 }

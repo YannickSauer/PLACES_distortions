@@ -55,9 +55,11 @@ public class ExperimentManager : MonoBehaviour
 
     public AftereffectData aftereffectData ; // stores trial-by-trial data for the aftereffect phase
 
-    private string resultsPath;
+    public string outputDirectory = "./measurements/subjectID/";
     private bool isRunning = false;
     private Distortions distortions;
+    private EyeTrackingToolbox eyeTracker;
+
 
     void Awake()
     {
@@ -80,15 +82,31 @@ public class ExperimentManager : MonoBehaviour
         distortions.radial = adaptationRadial;
         distortions.active = false;
         // output = "./measurements/subjectID/results.csv"
-        resultsPath = Path.Combine(Application.dataPath, "measurements", subjectID.ToString(), "results.csv");
-        Directory.CreateDirectory(Path.GetDirectoryName(resultsPath));
+        string projectPath = Directory.GetParent(Application.dataPath).FullName;
+        outputDirectory = Path.Combine(projectPath, "measurements", subjectID.ToString() + "_" + System.DateTime.Now.ToString("yyMMddHHmm"));
+        
+        // create the directory if it does not exist
+        if (!Directory.Exists(outputDirectory))
+        {
+            Directory.CreateDirectory(outputDirectory); 
+        }
 
         // fill the trial variables
         aftereffectData = GetAftereffectData();
 
         // set random dots to inactive
         Camera.main.GetComponent<DotManager>().active = false;
-        
+
+        // set the eye tracker
+        eyeTracker = EyeTrackingToolbox.Instance;
+        if (eyeTracker == null)
+        {
+            Debug.LogError("EyeTracker not found in the scene.");
+        }
+        else
+        {
+            eyeTracker.outputDirectory = outputDirectory;
+        }
     }
 
     private AftereffectData GetAftereffectData()
@@ -123,19 +141,25 @@ public class ExperimentManager : MonoBehaviour
         ////////////////////
         // Baseline phase///
         ////////////////////
+        // start eye tracking measurement for the baseline phase
+        eyeTracker?.StartRecording("preBaseline");
         yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.preBaselineDuration)); // adaptation phase without distortions
+        eyeTracker?.StopRecording();
         //yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
         //yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
         
         // //  SWIM EFFECT SCENE // //
         // switch to sway scene and run topupFrequency trials
+        eyeTracker?.StartRecording("baseline");
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
+            eyeTracker?.StartRecording("baseline");
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
             yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
         }
-        
+        eyeTracker?.StopRecording();
+
         //////////////////////
         // Adaptation phase //
         //////////////////////
@@ -143,7 +167,9 @@ public class ExperimentManager : MonoBehaviour
         // turn distortions on
         adaptationPhaseData.distorted = true;
         distortions.active = true;
+        eyeTracker?.StartRecording("adaptation");
         yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration)); // adaptation phase with distortions
+        eyeTracker?.StopRecording();
         distortions.active = false;
 
         ///////////////////////
@@ -153,7 +179,7 @@ public class ExperimentManager : MonoBehaviour
         // create new trial parameters
         aftereffectData = GetAftereffectData();
 
-
+        eyeTracker?.StartRecording("aftereffect");
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {   
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
@@ -164,6 +190,7 @@ public class ExperimentManager : MonoBehaviour
             yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
             distortions.active = false;
         }
+        eyeTracker?.StopRecording();
         Debug.Log("Experiment completed.");
         distortions.active = false;
         isRunning = false;
@@ -196,7 +223,7 @@ public class ExperimentManager : MonoBehaviour
 
         if (testManager == null)
         {
-            Debug.LogError("VORTest script not found on the object!");
+            Debug.LogError("AdaptationTask script not found on the object!");
             
         }
         else
@@ -275,12 +302,5 @@ public class ExperimentManager : MonoBehaviour
         SceneManager.LoadScene(sceneName);
         // Wait until the scene is fully loaded before proceeding
         yield return new WaitUntil(() => SceneManager.GetActiveScene().name == sceneName);
-    }
-
-    private void SaveResults(int trialNumber)
-    {
-        string data = "Trial " + trialNumber;
-        File.AppendAllText(resultsPath, data);
-        Debug.Log("Results saved for trial " + trialNumber);
     }
 }

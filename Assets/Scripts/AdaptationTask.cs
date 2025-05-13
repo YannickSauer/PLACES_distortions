@@ -25,7 +25,12 @@ public class AdaptationTask : MonoBehaviour
 
     public List<Color> balloonColors = new List<Color>();
 
-
+    [Header("Game Settings")]
+    public float roundTime = 120f; // in seconds; duration of one round
+    private int roundCounter = 0; // counter for the current round
+    private List<float> highScores = new List<float>();
+    private float roundTimer = 0f; // timer for the current round
+    private bool inRound = false; // flag to check if we are in a round
 
     [Header("Spawn Settings")]
     public float spawnDelay = 2f; // delay between destruction of balloon and spawning a new one
@@ -41,7 +46,7 @@ public class AdaptationTask : MonoBehaviour
     private int score = 0;
     private TMP_Text scoreText;
     private TMP_Text timerText;
-
+    private TMP_Text highScoreText;
     void Start()
     {
         // check if enough colors are provided
@@ -50,19 +55,59 @@ public class AdaptationTask : MonoBehaviour
             Debug.LogError("At least two colors are necessary.");
             return;
         }
-        SpawnAllBalloons();
 
         // start the timer
         timer = Time.time;
         // show score on the TextMeshPro object
         scoreText = GameObject.Find("ScoreText").GetComponent<TMP_Text>();
         timerText = GameObject.Find("TimerText").GetComponent<TMP_Text>();
+        highScoreText = GameObject.Find("RoundText").GetComponent<TMP_Text>();
         UpdateTexts();
 
         // set the min and max grow speed for all balloons
         Balloon.minGrowSpeed = minGrowSpeed;
         Balloon.maxGrowSpeed = maxGrowSpeed;
         Balloon.maxSize = explodeSize;
+    }
+
+    private IEnumerator StartRound()
+    {
+        // reset score and timer
+        score = 0;
+        roundTimer = Time.time;
+        inRound = true;
+        // reset the balloons
+        foreach (Balloon balloon in balloons)
+        {
+            if (balloon != null)
+            {
+                Destroy(balloon.gameObject);
+            }
+        }
+        balloons.Clear();
+        SpawnAllBalloons();
+        // wait for the round to finish
+        yield return new WaitForSeconds(roundTime);
+        // end the round
+        // destroy all balloons
+        foreach (Balloon balloon in balloons)
+        {
+            if (balloon != null)
+            {
+                Destroy(balloon.gameObject);
+            }
+        }
+        // save the score
+        highScores.Add(score);
+        // sort the high scores
+        highScores.Sort((a, b) => b.CompareTo(a)); // sort in descending order
+        // keep only the top 5 scores
+        if (highScores.Count > 5)
+        {
+            highScores.RemoveRange(5, highScores.Count - 5);
+        }
+        roundCounter++;
+        inRound = false;
     }
 
     private void SpawnAllBalloons()
@@ -73,6 +118,7 @@ public class AdaptationTask : MonoBehaviour
                // Start coroutine to spawn balloons with a delay
                 float delay = Random.Range(0f, 1f); // random delay for each balloon
                 StartCoroutine(SpawnBalloon(delay, 0, balloonId,Camera.main.transform.position));
+                
         }
         
         // spawn distractor balloons
@@ -88,6 +134,10 @@ public class AdaptationTask : MonoBehaviour
     {
         // wait for the delay before spawning the balloon
         yield return new WaitForSeconds(delay);
+        if (!inRound)
+        {
+            yield break; // if not in round, do not spawn the balloon
+        }
         // spawn the balloon at the group position with a random offset
         Vector3 pos = Camera.main.transform.position;
         while ((Vector3.Distance(pos,Camera.main.transform.position) < playerDistance) || (Vector3.Distance(pos, prevLocation) < prevSpawnDistance))
@@ -104,6 +154,8 @@ public class AdaptationTask : MonoBehaviour
         balloon.OnPopped += HandleBalloonPopped;
 
         balloons.Add(balloon);
+        // remove null balloons from the list
+        balloons.RemoveAll(b => b == null);
     }
 
     public Vector3 RandomPointInBounds(Vector3 lowerBounds, Vector3 upperBounds)
@@ -119,33 +171,76 @@ public class AdaptationTask : MonoBehaviour
     {
         if (scoreText != null)
         {
-            scoreText.text = "Score: " + score;
+            int totalRounds = Mathf.FloorToInt(duration / roundTime);
+            scoreText.text = "Round: " + (roundCounter+1) + "/" + totalRounds + "\nScore: " + score;
         }
         
 
         if (timerText != null)
         {
-            timerText.text = "Time left: " + Mathf.RoundToInt(duration - (Time.time-timer)) + "s";
+            if (inRound)
+            {
+                timerText.text = "Time left: " + Mathf.RoundToInt(roundTime - (Time.time-roundTimer)) + "s";
+            }
+            else
+            {
+                timerText.text = "";
+            }
         }
+
+        if (highScoreText != null)
+            {
+            if (!inRound)
+            {
+                // if at least one score in the list, show the high score
+                if (highScores.Count > 0)
+                {
+                    highScoreText.text = "High Score:\n" + GetHighScoreText() + "\nPress Trigger to start next round.";
+                }
+                else
+                {
+                    highScoreText.text = "Press Trigger to start next round.";
+                }
+            }
+            else
+            {
+                highScoreText.text = "";
+            }
+        }
+        
         
     }
 
+    private string GetHighScoreText()
+    {
+        string text = "";
+        for (int i = 0; i < highScores.Count; i++)
+        {
+            text +=  (i + 1) + ": " + highScores[i] + "\n";
+        }
+        return text;
+    }
     void HandleBalloonExploded(Balloon b)
     { 
         if (b.groupId == 0) // this was a target balloon, we get negative points
         {
             score -= Mathf.Abs(explodeScore); // take neg abs,then it doesn't matter how the explodeScore was defined (pos or neg)
             SpawnPoints(b.transform.position, -Mathf.Abs(explodeScore));
+            GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
+            // play the explosion particle system
+            ParticleSystem explosionPS = explosion.GetComponent<ParticleSystem>();
+            explosionPS.Play();
+            // destroy the explosion after 1 second
+            Destroy(explosion, 1f);
         }
-        /*
-        // Instantiate explosion effect at the balloon's position
-        GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
+        
+        //Instantiate explosion effect at the balloon's position
         // set the color of the explosion to the color of the balloon
-        ParticleSystem.MainModule main = explosion.GetComponent<ParticleSystem>().main;
+        //ParticleSystem.MainModule main = explosion.GetComponent<ParticleSystem>().main;
         // play the particle system
-        main.startColor = b.GetComponent<Renderer>().material.color;
-        explosion.GetComponent<ParticleSystem>().Play();
-        */
+        //main.startColor = b.GetComponent<Renderer>().material.color;
+        //explosion.GetComponent<ParticleSystem>().Play();
+        
         Debug.Log("Balloon exploded! Score: " + score);
         // start score animation
 
@@ -171,6 +266,15 @@ public class AdaptationTask : MonoBehaviour
         else
         {
             points = -Mathf.Abs(wrongBaloonScore);
+            GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
+            // play the explosion particle system
+            ParticleSystem explosionPS = explosion.GetComponent<ParticleSystem>();
+            //ParticleSystem.MainModule ma = explosionPS.main;
+            //ma.startColor = b.GetComponent<Renderer>().material.color;
+
+            explosionPS.Play();
+            // destroy the explosion after 1 second
+            Destroy(explosion, 1f);
         }
         score += points;
         SpawnPoints(b.transform.position, points);
@@ -183,6 +287,8 @@ public class AdaptationTask : MonoBehaviour
     void SpawnPoints(Vector3 position, int points)
     {
         GameObject pointsObj = Instantiate(pointsPrefab, position + 0.2f * Vector3.up, Quaternion.identity);
+        pointsObj.transform.LookAt(Camera.main.transform);
+        pointsObj.transform.Rotate(0, 180f, 0); // Rotate to face the camera properly
         // get child object with text component
         TMP_Text pointsText = pointsObj.transform.GetChild(0).GetComponent<TMP_Text>();
         if (points > 0)
@@ -204,9 +310,24 @@ public class AdaptationTask : MonoBehaviour
         }
     }
 
+    public void TriggerPressed()
+    {
+        if (!inRound)
+        {
+            StartCoroutine(StartRound());
+        }
+    }
+
     // For testing: destroy balloon with mouse click (or raycast in VR)
     void Update()
     {
+
+        // if not in round, check if trigger is pressed
+        if (!inRound && Input.GetKeyDown(KeyCode.B))
+        {
+            StartCoroutine(StartRound());
+        }
+
         if (Input.GetMouseButtonDown(0)) {
             Debug.Log(Input.mousePosition);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);

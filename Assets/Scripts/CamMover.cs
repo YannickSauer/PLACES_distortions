@@ -15,6 +15,18 @@ public class CamMover : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // use wasd to move the camera
+        // while s is pressed, move the camera down
+        if (Input.GetKey(KeyCode.S))
+        {
+            transform.Translate(Vector3.down * speed * Time.deltaTime);
+        }
+        // while w is pressed, move the camera up
+        if (Input.GetKey(KeyCode.W))
+        {
+            transform.Translate(Vector3.up * speed * Time.deltaTime);
+        }
+        
         // while w is pressed, rotate the camera around the y-axis
         if (Input.GetKey(KeyCode.A))
         {

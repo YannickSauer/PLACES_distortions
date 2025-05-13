@@ -13,6 +13,9 @@ public class Balloon : MonoBehaviour
     public int groupId;
     public event Action<Balloon> OnExplode;
     public event Action<Balloon> OnPopped;
+    public AudioClip explosionSound;
+    public AudioClip popSound;
+    public AudioClip wrongPopSound;
 
     private float growSpeed; // individual grow speed
     private bool isActive = true;
@@ -67,7 +70,15 @@ public class Balloon : MonoBehaviour
     public void Pop(Vector3 direction)
     {
         if (!isActive) return;
-
+        // play pop sound
+        if (groupId == 0)
+        {
+            AudioSource.PlayClipAtPoint(popSound, transform.position);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(wrongPopSound, transform.position);
+        }
         isActive = false;
         // Instatiate a pop prefab here
         // GameObject popEffect = Instantiate(popPrefab, transform.position, Quaternion.identity);
@@ -105,7 +116,14 @@ public class Balloon : MonoBehaviour
     private void Explode()
     {
         if (!isActive) return;
-        // Instatiate a explode prefab here
+        // play explosion sound
+        if (groupId == 0) // explosion only for the target balloon
+        {
+            AudioSource.PlayClipAtPoint(explosionSound, transform.position);
+        }
+        
+        // 
+        //         // Instatiate a explode prefab here
         // GameObject popEffect = Instantiate(explodePrefab, transform.position, Quaternion.identity);
         // Destroy(explodeEffect, 1f); // destroy the pop effect after 1 second
         // set color of pop effect to the color of the balloon
@@ -119,5 +137,11 @@ public class Balloon : MonoBehaviour
         OnExplode?.Invoke(this);
         
         Destroy(gameObject);
+    }
+    // add onDestroy method to clean up the event listeners
+    private void OnDestroy()
+    {
+        OnExplode = null;
+        OnPopped = null;
     }
 }
