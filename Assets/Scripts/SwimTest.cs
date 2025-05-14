@@ -47,7 +47,7 @@ public class SwimTest : MonoBehaviour
         }
 
         scene = GameObject.Find("Scene");
-
+        scene.SetActive(false);
         // adjust the scene scale for distortions, i.e. all objects are inversely scaled by the magnification factor. This works only if the camera is at the origin.
         initTargetScale = scene.transform.localScale.x; // assuming all scale components are the same
         AdjustForMagnification();
@@ -217,20 +217,23 @@ public class SwimTest : MonoBehaviour
         trainingGameObj.SetActive(false);
 
         Debug.Log("Starting aftereffect test.");
-        
-       
+        // wait for startWaitTime
+        yield return new WaitForSeconds(2f);
+
+        // wait for the participant to rotate towards the test direction
+        while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
+        {
+            yield return null;
+        }
+        // beep to indicate the start of the test
+        PlayBeep(0.4f);
+        // wait for ISI before starting the test
+        yield return new WaitForSeconds(startWaitTime);
+
         // loop trough all target positions
         for (int trial = 0; trial < nTrialsBlock; trial++)
         {    
-            // wait for the participant to rotate towards the test direction
-            while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
-            {
-                yield return null;
-            }
-            // beep to indicate the start of the test
-            PlayBeep(0.4f);
-            // wait for ISI before starting the test
-            yield return new WaitForSeconds(startWaitTime);
+            
             initialRotation = Camera.main.transform.rotation;
             initialPosition = Camera.main.transform.position;
             
@@ -242,9 +245,14 @@ public class SwimTest : MonoBehaviour
             dotManager.distortionParam.y = radial;
             
             // set scene and random dots for the current distortion
-            dotManager.active = true;
             scene.SetActive(true);
+            // rotate Scene in horizontal direction of camera
+            scene.transform.rotation = Quaternion.Euler(0, Camera.main.transform.rotation.eulerAngles.y, 0);
+            // scale scene to keep perceived distance independent of magnification
             AdjustForMagnification();
+            yield return new WaitForSeconds(0.1f);
+            // now project the dots onto the adjusted scene, before disabling the scene again
+            dotManager.active = true;
             dotManager.Resample();
             dotManager.Reproject();
             scene.SetActive(false);
@@ -318,10 +326,11 @@ public class SwimTest : MonoBehaviour
             {
                 SaveTrial(2);
             }
-
+            PlayBeep(0.4f); // feedback beep
+            aftereffectData.currentTrial++;
             //GetComponent<Renderer>().material.color = Color.green;
             yield return new WaitForSeconds(startWaitTime);
-            aftereffectData.currentTrial++;
+            
         }
         Debug.Log("Aftereffect test completed.");
         if (eyeTracker != null)

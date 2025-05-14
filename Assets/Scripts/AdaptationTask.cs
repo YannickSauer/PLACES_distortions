@@ -318,6 +318,11 @@ public class AdaptationTask : MonoBehaviour
         }
     }
 
+    public void StartGame()
+    {
+        StartCoroutine(StartRound());
+    }
+
     // For testing: destroy balloon with mouse click (or raycast in VR)
     void Update()
     {

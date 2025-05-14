@@ -12,7 +12,7 @@ using System.Globalization;
 public class DotManager : MonoBehaviour
 {
     [Header("Dot parameters")]
-    public const int nDots = 3000;  
+    public const int nDots = 4000;  
     public float size = 1f;  
     public Color dotColor = Color.white;
     [Range (0f, 1f)]
@@ -216,10 +216,11 @@ public class DotManager : MonoBehaviour
         {   
             RaycastHit hit;
             // dots can be projected in camera direction or always in z direction
-            // camera direction:
-            // Ray rayFromDot = new Ray(transform.position, transform.rotation * new Vector3(dots[i].x,dots[i].y,1)); // assumes this component to be attached to camera already
-            // z direction:
-            Ray rayFromDot = new Ray(transform.position, new Vector3(dots[i].x,dots[i].y,1));
+            // consider horizontal component of camera direction:
+            Quaternion horizontalCamOrientation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+            Ray rayFromDot = new Ray(transform.position, horizontalCamOrientation * new Vector3(dots[i].x,dots[i].y,1)); // assumes this component to be attached to camera already
+            // alternatively, relative to z-direction (=forward) in world coordinates:
+            //Ray rayFromDot = new Ray(transform.position, new Vector3(dots[i].x,dots[i].y,1));
             if (Physics.Raycast(rayFromDot, out hit))
             {
                 // add 4th value to indicate color (white or black)

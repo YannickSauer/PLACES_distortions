@@ -229,6 +229,7 @@ public class ExperimentManager : MonoBehaviour
         {
             testManager.duration = adaptationDuration;
         }
+        testManager.StartGame();
         yield return new WaitForSeconds(adaptationDuration);
     }
 
