@@ -1312,7 +1312,6 @@ MonoBehaviour:
   etprovider: 1
   calibrateKey: 99
   saveRaycastHitpoint: 0
-  outputDirectory: ./
   trackedObjectList:
   - trackingOptions: 1
     gameObject: {fileID: 1134172571}
@@ -2382,11 +2381,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.topupFrequency
-      value: 4
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.topUpDuration
-      value: 10
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.samplingFrequency
@@ -2394,7 +2393,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.adaptationDuration
-      value: 600
+      value: 900
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.preBaselineDuration
@@ -2406,43 +2405,43 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.size
-      value: 10
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[0]
-      value: 0.85
-      objectReference: {fileID: 0}
-    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[1]
       value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[2]
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[1]
       value: 0.95
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[3]
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[2]
       value: 0.975
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[4]
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[3]
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[5]
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[4]
       value: 1.025
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[6]
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[5]
       value: 1.05
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[7]
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[6]
       value: 1.1
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
-      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[8]
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[7]
       value: 1.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[8]
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[9]
@@ -2487,15 +2486,15 @@ MonoBehaviour:
   explosionPrefab: {fileID: 3291173667167369050, guid: 5138b7ce1c3bf064abafe53e4c415274, type: 3}
   nTargetBalloons: 2
   nDistractorBalloons: 4
-  explodeSize: 0.4
+  explodeSize: 0.5
   explodeScore: 5
   wrongBaloonScore: 5
   highPointsThreshold: 0.2
   lowPoints: 1
   highPoints: 3
   initBalloonSize: 0.2
-  minGrowSpeed: 0.01
-  maxGrowSpeed: 0.02
+  minGrowSpeed: 0.015
+  maxGrowSpeed: 0.025
   balloonColors:
   - {r: 0.5498886, g: 1, b: 0.28773582, a: 0}
   - {r: 0.2783019, g: 0.6501763, b: 1, a: 0}

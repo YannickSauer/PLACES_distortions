@@ -14,7 +14,7 @@ using ViveSR.anipal.Eye;
 public class EyeTrackingToolbox : MonoBehaviour
 {
     public static EyeTrackingToolbox Instance { get; private set; }
-
+    private static float unityTimestamp; // Each thread has access to static variables, so that the timestamp Time.time can be written to the variable unityTimestamp and we can use this as a timestamp even if the function is called in another thread.
     public enum ETProvider
     {
         Dummy,
@@ -49,7 +49,7 @@ public class EyeTrackingToolbox : MonoBehaviour
     }
 
     public bool saveRaycastHitpoint = false; // check for raycast intersection with objects during runtime
-    public string outputDirectory = "./"; // folder for tracking data
+    public string OutputFolder   { get; private set; } // folder for the recording output files
 
     [Header("Object Tracking Settings")]
     // List to hold the variables with dropdown options and associated GameObjects
@@ -147,6 +147,14 @@ public class EyeTrackingToolbox : MonoBehaviour
         // set US culture for number formatting in strings
         System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
         System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+
+        // set default output folder
+        OutputFolder = null;
+    }
+
+    public void SetOutputFolder(string folder)
+    {
+        OutputFolder = folder;
     }
 
     private void Start()
@@ -156,6 +164,7 @@ public class EyeTrackingToolbox : MonoBehaviour
 
     void Update()
     {
+        unityTimestamp = Time.time;
         // TODO change to get-function
         //currentGazeData = eyeTracker.GetGazeData();
         if (Input.GetKeyDown(calibrateKey))
@@ -190,9 +199,21 @@ public class EyeTrackingToolbox : MonoBehaviour
         {
             gazeTrackingQueue.Clear(); // hier oder in stop tracking
             trackingDataQueue.Clear();
-            objectTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_head.csv");
+            if (OutputFolder == null)
+            {
+                Debug.LogError("Output folder not set. Please set the output folder with SetOutputFolder(string folder) before starting the recording.");
+            }
+            if (Path.HasExtension(outputFileName))
+            {
+                objectTrackingFile = Path.Combine(OutputFolder, Path.GetFileNameWithoutExtension(outputFileName) + "_head.csv");
+                gazeTrackingFile = Path.Combine(OutputFolder, Path.GetFileNameWithoutExtension(outputFileName) + "_gaze.csv");
+            }
+            else
+            {
+                objectTrackingFile = Path.Combine(OutputFolder, outputFileName + "_head.csv");
+                gazeTrackingFile = Path.Combine(OutputFolder, outputFileName + "_gaze.csv");
+            }
             Debug.Log("Object tracking file " + objectTrackingFile);
-            gazeTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_gaze.csv");
             Debug.Log("Gaze tracking file " + gazeTrackingFile);
             
             isRecording = true;
@@ -204,9 +225,9 @@ public class EyeTrackingToolbox : MonoBehaviour
             while (File.Exists(objectTrackingFile) || File.Exists(gazeTrackingFile))
             {
                 counter++;
-                objectTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_head.csv");
+                objectTrackingFile = Path.Combine(Application.dataPath, OutputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_head.csv");
                 Debug.Log("Object tracking file already exists. Changing filename to " + objectTrackingFile);
-                gazeTrackingFile = Path.Combine(outputDirectory, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
+                gazeTrackingFile = Path.Combine(Application.dataPath, OutputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
             }
             WriteHeader();
             InvokeRepeating("Save", 0.0f, 1.0f); // save data to file every second
@@ -214,14 +235,15 @@ public class EyeTrackingToolbox : MonoBehaviour
     }
     
     // handle data of the event invoked by the eye tracker
-    private void HandleData(GazeData gazeDate)
+    private void HandleData(GazeData gazeData)
     {
-        gazeDate.unityTimestamp = Time.time; // set Unity timestamp for the current frame
-        currentGazeData = gazeDate;
+        // gazeDate.unityTimestamp = Time.time; // set Unity timestamp for the current frame
+        gazeData.unityTimestamp = unityTimestamp; // If the static event is called from another thread, it appears that this function is called from this thread and does not have access to Time.time, so we use the static variable here.
+        currentGazeData = gazeData;
         
         if (isRecording)
         {
-            gazeTrackingQueue.Enqueue(gazeDate);
+            gazeTrackingQueue.Enqueue(gazeData);
         }
     }
 
@@ -248,9 +270,9 @@ public class EyeTrackingToolbox : MonoBehaviour
     private void WriteHeader()
     {
         // check if output folder exists
-        if (!Directory.Exists(outputDirectory))
+        if (!Directory.Exists(Path.Combine(Application.dataPath, OutputFolder)))
         {
-            Directory.CreateDirectory(outputDirectory);
+            Directory.CreateDirectory(Path.Combine(Application.dataPath, OutputFolder));
         }
         StreamWriter sw = new StreamWriter(objectTrackingFile);
 

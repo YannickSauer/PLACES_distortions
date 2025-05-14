@@ -104,7 +104,7 @@ public class ExperimentManager : MonoBehaviour
         }
         else
         {
-            eyeTracker.outputDirectory = outputDirectory;
+            eyeTracker.SetOutputFolder(outputDirectory);
         }
     }
 

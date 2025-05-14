@@ -259,9 +259,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea2f64101af4c794885b3cec30b0b9ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startWaitTime: 0.1
-  filePath: swimTest.csv
-  eyeTrackerFileName: swimTest_gaze.csv
+  startWaitTime: 0.6
+  outputFolder: 
   targetDistance: 10
   invisibleTarget: 0
   headRotationThreshold: 10

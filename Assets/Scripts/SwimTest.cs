@@ -217,23 +217,24 @@ public class SwimTest : MonoBehaviour
         trainingGameObj.SetActive(false);
 
         Debug.Log("Starting aftereffect test.");
-        //eyeTracker.StartRecording(fileName);
-        //TODO: fill the trial variables        
-        // wait for the participant to rotate towards the test direction
-        while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
-        {
-            yield return null;
-        }
-         
-        // wait for ISI before starting the test
-        yield return new WaitForSeconds(startWaitTime);
-
+        
+       
         // loop trough all target positions
-        initialRotation = Camera.main.transform.rotation;
-        initialPosition = Camera.main.transform.position;
-
         for (int trial = 0; trial < nTrialsBlock; trial++)
         {    
+            // wait for the participant to rotate towards the test direction
+            while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
+            {
+                yield return null;
+            }
+            // beep to indicate the start of the test
+            PlayBeep(0.4f);
+            // wait for ISI before starting the test
+            yield return new WaitForSeconds(startWaitTime);
+            initialRotation = Camera.main.transform.rotation;
+            initialPosition = Camera.main.transform.position;
+            
+
             // set the trial distortion
             magnification = aftereffectData.magnificationTrial[aftereffectData.currentTrial];
             radial = aftereffectData.radialTrial[aftereffectData.currentTrial];
