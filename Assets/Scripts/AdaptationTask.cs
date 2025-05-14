@@ -199,7 +199,7 @@ public class AdaptationTask : MonoBehaviour
                 }
                 else
                 {
-                    highScoreText.text = "Press Trigger to start next round.";
+                    highScoreText.text = "Destory all green balloons!\nPress Trigger to start.";
                 }
             }
             else

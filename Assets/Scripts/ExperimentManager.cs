@@ -7,7 +7,6 @@ public class ExperimentManager : MonoBehaviour
 {
     public static ExperimentManager Instance { get; private set; }
     public int subjectID = 0;
-    public float adaptationDuration = 120f; // in seconds; duration for each trial
     public float adaptationMagnification = 1.0f;
     public float adaptationRadial = 0.0f;
 
@@ -230,8 +229,6 @@ public class ExperimentManager : MonoBehaviour
         {
             testManager.duration = adaptationDuration;
         }
-
-        // Start the test coroutine and wait for it to finish
         yield return new WaitForSeconds(adaptationDuration);
     }
 

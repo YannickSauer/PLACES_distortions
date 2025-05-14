@@ -1309,11 +1309,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94da9119c5b59fd4ebdce7b47e9a3b63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  etprovider: 0
+  etprovider: 1
   calibrateKey: 99
   saveRaycastHitpoint: 0
-  outputFolder: measurements
-  trackedObjectList: []
+  outputDirectory: ./
+  trackedObjectList:
+  - trackingOptions: 1
+    gameObject: {fileID: 1134172571}
   isObjectRecording: 0
 --- !u!4 &835161647
 Transform:
@@ -2352,11 +2354,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: subjectID
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationScene
       value: Adaptation
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: adaptationDuration
+      value: 600
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: preBaseLineDuration
@@ -2388,7 +2394,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.adaptationDuration
-      value: 120
+      value: 600
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.preBaselineDuration
@@ -3516,8 +3522,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 4
-  m_fontSizeBase: 4
+  m_fontSize: 3
+  m_fontSizeBase: 3
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
