@@ -232,8 +232,9 @@ public class SwimTest : MonoBehaviour
 
         // loop trough all target positions
         for (int trial = 0; trial < nTrialsBlock; trial++)
-        {    
-            
+        {
+            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // eary stop if less trials left than given by nTrialsBlock
+
             initialRotation = Camera.main.transform.rotation;
             initialPosition = Camera.main.transform.position;
             
@@ -250,7 +251,7 @@ public class SwimTest : MonoBehaviour
             scene.transform.rotation = Quaternion.Euler(0, Camera.main.transform.rotation.eulerAngles.y, 0);
             // scale scene to keep perceived distance independent of magnification
             AdjustForMagnification();
-            yield return new WaitForSeconds(0.1f);
+            yield return null; // wait for one frame, so that the new scene transform applies 
             // now project the dots onto the adjusted scene, before disabling the scene again
             dotManager.active = true;
             dotManager.Resample();

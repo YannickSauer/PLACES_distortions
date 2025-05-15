@@ -146,23 +146,23 @@ public class ExperimentManager : MonoBehaviour
         eyeTracker?.StopRecording();
         //yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
         //yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
-        
+
         // //  SWIM EFFECT SCENE // //
         // switch to sway scene and run topupFrequency trials
         eyeTracker?.StartRecording("baseline");
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
-            eyeTracker?.StartRecording("baseline");
-            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
-            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
+           eyeTracker?.StartRecording("baseline");
+        yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+        if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
+        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
         }
         eyeTracker?.StopRecording();
 
         //////////////////////
         // Adaptation phase //
         //////////////////////
-        
+
         // turn distortions on
         adaptationPhaseData.distorted = true;
         distortions.active = true;
@@ -180,7 +180,8 @@ public class ExperimentManager : MonoBehaviour
 
         eyeTracker?.StartRecording("aftereffect");
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
-        {   
+        {
+
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
 
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
