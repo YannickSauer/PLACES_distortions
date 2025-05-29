@@ -30,7 +30,8 @@ public class SwimTest : MonoBehaviour
     public GameObject scene;
     private float lastBeepTime;
     private float nextBeepTime;
-    private bool firePressed = false;
+    private bool fireLeftPressed = false;
+    private bool fireRightPressed = false;
     private bool touchpadPressed = false;
     private string filePath;
     
@@ -306,20 +307,22 @@ public class SwimTest : MonoBehaviour
             // remove the random dots
             dotManager.active = false;
 
-            firePressed = false;
+            fireLeftPressed = false;
+            fireRightPressed = false;
             touchpadPressed = false;
             // wait for participant answer
             yield return new WaitUntil(() => 
                 Input.GetKeyDown(KeyCode.LeftArrow) || 
                 Input.GetKeyDown(KeyCode.RightArrow) || 
-                firePressed || 
+                fireLeftPressed || 
+                fireRightPressed ||
                 touchpadPressed);
             // you can check which key was pressed or OnFire was called
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || firePressed)
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed)
             {
                 SaveTrial(1);
             }
-            else if (Input.GetKeyDown(KeyCode.RightArrow) || touchpadPressed)
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || fireRightPressed)
             {
                 SaveTrial(0);
             }
@@ -366,9 +369,14 @@ public class SwimTest : MonoBehaviour
         return deltaAngle;
     }
 
-    private void OnFire() // called by the fire button of the controller
+    private void OnFireLeft() // called by the fire left button of the controller
     {
-        firePressed = true;
+        fireLeftPressed = true;
+    }
+
+    private void OnFireRight() // called by the fire right button of the controller
+    {
+        fireRightPressed = true;
     }
 
     private void OnTouchpad() // called by the touchpad of the controller

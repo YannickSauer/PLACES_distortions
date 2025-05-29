@@ -21,6 +21,7 @@ public class ExperimentManager : MonoBehaviour
     [System.Serializable]
     public class AdaptationPhaseData
     {
+        public bool inAdaptationPhase;
         public float score; // current score of the adaptation phase
         public bool distorted; // in which experiment phase are we: distorted already or not
     }    
@@ -142,7 +143,7 @@ public class ExperimentManager : MonoBehaviour
         ////////////////////
         // start eye tracking measurement for the baseline phase
         eyeTracker?.StartRecording("preBaseline");
-        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.preBaselineDuration)); // adaptation phase without distortions
+        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.preBaselineDuration, 0)); // adaptation phase without distortions
         eyeTracker?.StopRecording();
         //yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
         //yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
@@ -150,12 +151,14 @@ public class ExperimentManager : MonoBehaviour
         // //  SWIM EFFECT SCENE // //
         // switch to sway scene and run topupFrequency trials
         eyeTracker?.StartRecording("baseline");
+        int roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
-           eyeTracker?.StartRecording("baseline");
-        yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
-        if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
-        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
+            eyeTracker?.StartRecording("baseline");
+            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, roundCounter)); // adaptation phase for topUpDuration seconds
+            roundCounter++;
         }
         eyeTracker?.StopRecording();
 
@@ -164,39 +167,43 @@ public class ExperimentManager : MonoBehaviour
         //////////////////////
 
         // turn distortions on
+        adaptationPhaseData.inAdaptationPhase = true;
         adaptationPhaseData.distorted = true;
         distortions.active = true;
         eyeTracker?.StartRecording("adaptation");
-        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration)); // adaptation phase with distortions
+        yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration, 0)); // adaptation phase with distortions
         eyeTracker?.StopRecording();
         distortions.active = false;
 
         ///////////////////////
         // Aftereffect phase //
         ///////////////////////
-        
+
         // create new trial parameters
         aftereffectData = GetAftereffectData();
 
         eyeTracker?.StartRecording("aftereffect");
+        roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
-
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
-
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
             // return to adaptation scene for top-up with distortions
             distortions.active = true;
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration)); // adaptation phase for topUpDuration seconds
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, roundCounter)); // adaptation phase for topUpDuration seconds
+            roundCounter++;
             distortions.active = false;
         }
         eyeTracker?.StopRecording();
         Debug.Log("Experiment completed.");
         distortions.active = false;
         isRunning = false;
+
+        yield return new WaitForSeconds(1);
+        Application.Quit();
     }
 
-    private IEnumerator AdaptationPhase(float adaptationDuration)
+    private IEnumerator AdaptationPhase(float adaptationDuration, int roundCounter)
     {
         yield return StartCoroutine(SwitchScene(adaptationPhaseSettings.sceneName)); // switch to adaptation scene
 
@@ -224,11 +231,21 @@ public class ExperimentManager : MonoBehaviour
         if (testManager == null)
         {
             Debug.LogError("AdaptationTask script not found on the object!");
-            
+
         }
         else
         {
-            testManager.duration = adaptationDuration;
+            testManager.roundCounter = roundCounter;
+            // Change round info according adaptation or top up phase
+            if (adaptationPhaseData.inAdaptationPhase)
+            {
+                testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
+            }
+            else
+            {
+                testManager.totalRounds = Mathf.FloorToInt(aftereffectData.nTrials / aftereffectSettings.topupFrequency);
+                testManager.roundTime = adaptationDuration;
+            }
         }
         testManager.StartGame();
         yield return new WaitForSeconds(adaptationDuration);

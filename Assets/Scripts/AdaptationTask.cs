@@ -27,7 +27,8 @@ public class AdaptationTask : MonoBehaviour
 
     [Header("Game Settings")]
     public float roundTime = 120f; // in seconds; duration of one round
-    private int roundCounter = 0; // counter for the current round
+    public int roundCounter = 0; // counter for the current round
+    public int totalRounds = 0;
     private List<float> highScores = new List<float>();
     private float roundTimer = 0f; // timer for the current round
     private bool inRound = false; // flag to check if we are in a round
@@ -76,6 +77,7 @@ public class AdaptationTask : MonoBehaviour
         score = 0;
         roundTimer = Time.time;
         inRound = true;
+        roundCounter++;
         // reset the balloons
         foreach (Balloon balloon in balloons)
         {
@@ -106,7 +108,6 @@ public class AdaptationTask : MonoBehaviour
         {
             highScores.RemoveRange(5, highScores.Count - 5);
         }
-        roundCounter++;
         inRound = false;
     }
 
@@ -171,8 +172,7 @@ public class AdaptationTask : MonoBehaviour
     {
         if (scoreText != null)
         {
-            int totalRounds = Mathf.FloorToInt(duration / roundTime);
-            scoreText.text = "Round: " + (roundCounter+1) + "/" + totalRounds + "\nScore: " + score;
+            scoreText.text = "Round: " + roundCounter + "/" + totalRounds + "\nScore: " + score;
         }
         
 
@@ -310,7 +310,7 @@ public class AdaptationTask : MonoBehaviour
         }
     }
 
-    public void TriggerPressed()
+    public void TouchpadPressed() // called by the touchpad of the controller
     {
         if (!inRound)
         {

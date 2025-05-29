@@ -16,13 +16,13 @@ public class GunController : MonoBehaviour
         // Create the dot at runtime
         if (hitDotPrefab != null)
             hitDotInstance = Instantiate(hitDotPrefab);
-        
+
         adaptationTask = FindObjectOfType<AdaptationTask>();
         if (adaptationTask == null)
         {
             Debug.LogError("AdaptationTask not found in the scene.");
         }
-    }    
+    }
 
     // Update is called once per frame
     void Update()
@@ -44,15 +44,11 @@ public class GunController : MonoBehaviour
         {
             Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * 1000, Color.white);
         }
-       
+
     }
-    
-    private void OnFire()
+
+    private void OnFireRight()
     {
-        if (adaptationTask != null)
-        {
-            adaptationTask.TriggerPressed();
-        }
         Debug.Log("Shoot");
         RaycastHit hit;
         if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out hit))
@@ -65,6 +61,14 @@ public class GunController : MonoBehaviour
                 // pop the balloon
                 balloon.Pop(transform.TransformDirection(Vector3.forward));
             }
+        }
+    }
+
+    private void OnTouchpad()
+    {
+        if (adaptationTask != null)
+        {
+            adaptationTask.TouchpadPressed();
         }
     }
 }

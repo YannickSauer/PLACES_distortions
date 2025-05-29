@@ -2409,7 +2409,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.preBaselineDuration
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.radialStimulisLevels.Array.size
@@ -2501,7 +2501,7 @@ MonoBehaviour:
   explodeSize: 0.5
   explodeScore: 5
   wrongBaloonScore: 5
-  highPointsThreshold: 0.2
+  highPointsThreshold: 0.23
   lowPoints: 1
   highPoints: 3
   initBalloonSize: 0.2
@@ -2510,7 +2510,9 @@ MonoBehaviour:
   balloonColors:
   - {r: 0.5498886, g: 1, b: 0.28773582, a: 0}
   - {r: 0.2783019, g: 0.6501763, b: 1, a: 0}
-  roundTime: 30
+  roundTime: 45
+  roundCounter: 0
+  totalRounds: 0
   spawnDelay: 0.5
   spawnAreaLowerBounds: {x: -3, y: 0.5, z: -0.8}
   spawnAreaUpperBounds: {x: 2.7, y: 2.1, z: 2.6}
