@@ -36,7 +36,7 @@ public class GunController : MonoBehaviour
             if (hitDotInstance != null)
             {
                 hitDotInstance.SetActive(true);
-                hitDotInstance.transform.position = hit.point;
+                hitDotInstance.transform.position = hit.point + hit.normal * 0.01f;
                 hitDotInstance.transform.rotation = Quaternion.LookRotation(hit.normal); // Optional: orient to surface
             }
         }

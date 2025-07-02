@@ -222,10 +222,13 @@ public class SwimTest : MonoBehaviour
         yield return new WaitForSeconds(2f);
 
         // wait for the participant to rotate towards the test direction
-        while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
-        {
-            yield return null;
-        }
+        var sceneTestManager = GameObject.Find("SceneTestManager");
+        yield return sceneTestManager.GetComponent<InterTrialInterval>().InterTripletInterval();
+        // while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
+        // {
+        //     yield return null;
+        // }
+
         // beep to indicate the start of the test
         PlayBeep(0.4f);
         // wait for ISI before starting the test

@@ -48,14 +48,14 @@ public class InterTrialInterval : MonoBehaviour
         initPos = cam.transform.position;
         initRot = Quaternion.identity;
 
-        GameObject movingTarget = Instantiate(movingTargetPrefab, cam.transform);
+        movingTarget = Instantiate(movingTargetPrefab, cam.transform);
         movingTarget.transform.localPosition = new Vector3(0, 0, movingTargetDistance);
 
         Vector3 fixedTargetPosition = cam.transform.position + new Vector3(0, 0, fixedTargetDistance);
-        GameObject fixedTarget = Instantiate(fixedTargetPrefab);
-        //fixedTarget.transform.position = initRot * (initPos + Vector3.forward * fixedTargetDistance);
+        fixedTarget = Instantiate(fixedTargetPrefab);
+        fixedTarget.transform.position = initRot * (initPos + Vector3.forward * fixedTargetDistance);
 
-        isActive = true;
+        isActive = false;
         
         movingTarget.SetActive(isActive);
         fixedTarget.SetActive(isActive);
@@ -76,8 +76,11 @@ public class InterTrialInterval : MonoBehaviour
 
     public IEnumerator InterTripletInterval()
     {
+        isActive = true;    
         // Show ISI scene and start timer
-        if (!movingTarget.activeSelf && !fixedTarget.activeSelf){
+        if (!movingTarget.activeSelf && !fixedTarget.activeSelf)
+        {
+            Debug.Log("Targets not active.");
             movingTarget.SetActive(isActive);
             fixedTarget.SetActive(isActive);
 
@@ -85,7 +88,7 @@ public class InterTrialInterval : MonoBehaviour
             // movingTarget.transform.position = cam.transform.position + cam.transform.rotation * Vector3.forward * shortDistance;
 
             currPos = cam.transform.position;
-            currRot = cam.transform.rotation;  
+            currRot = cam.transform.rotation;
 
             startTime = Time.time;
 
@@ -95,6 +98,7 @@ public class InterTrialInterval : MonoBehaviour
         // Check if ISI has passed and if pose and rotation are restored
         while (Time.time <= startTime + duration || !isRotationReset || !isPoseReset)
         {
+            Debug.Log("Still waiting to reset.");
             currPos = cam.transform.position;
             currRot = cam.transform.rotation;
 
@@ -118,11 +122,13 @@ public class InterTrialInterval : MonoBehaviour
             
             yield return null; 
         }
-        // Reset timer 
+        // Reset everything
         renderNear.material.color = Color.white;
         renderFar.material.color = Color.red;
         startTime = float.NaN;
         isActive = false;
+        isPoseReset = false;
+        isRotationReset = false;
         movingTarget.SetActive(isActive);
         fixedTarget.SetActive(isActive);
     }

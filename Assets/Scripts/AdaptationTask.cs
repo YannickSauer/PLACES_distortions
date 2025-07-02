@@ -195,11 +195,11 @@ public class AdaptationTask : MonoBehaviour
                 // if at least one score in the list, show the high score
                 if (highScores.Count > 0)
                 {
-                    highScoreText.text = "High Score:\n" + GetHighScoreText() + "\nPress Trigger to start next round.";
+                    highScoreText.text = "High Score:\n" + GetHighScoreText() + "\nPress Trackpad to start next round.";
                 }
                 else
                 {
-                    highScoreText.text = "Destory all green balloons!\nPress Trigger to start.";
+                    highScoreText.text = "Destory all green balloons!\nPress Trackpad to start.";
                 }
             }
             else
