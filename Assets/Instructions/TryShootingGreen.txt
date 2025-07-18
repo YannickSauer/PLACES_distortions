@@ -1,0 +1,9 @@
+Great!
+
+Now you should see a blue laser pistol in your right hand. 
+If you move it around you can see a red laser point following the direction you are pointing. 
+When you pull the trigger of your right controller the pistol shoots.
+
+Try to shoot the green balloon. 
+
+

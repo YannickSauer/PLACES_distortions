@@ -1,0 +1,6 @@
+Good job!
+
+To give you a feeling of how fast you have to move, try now to shake your head to the rhythm of the background music.
+You will still get auditory feedback once you turned your head far enough. 
+
+Once you complete 10 "shakes" at the correct speed the movement training is done.

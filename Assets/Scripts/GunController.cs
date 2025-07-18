@@ -64,11 +64,11 @@ public class GunController : MonoBehaviour
         }
     }
 
-    private void OnTouchpad()
-    {
-        if (adaptationTask != null)
-        {
-            adaptationTask.TouchpadPressed();
-        }
-    }
+    // private void OnTouchpad()
+    // {
+    //     if (adaptationTask != null)
+    //     {
+    //         adaptationTask.TouchpadPressed();
+    //     }
+    // }
 }

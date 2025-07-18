@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using System;
+using Random = UnityEngine.Random;
+using System.IO;
 
 
 public class AdaptationTask : MonoBehaviour
@@ -18,7 +21,7 @@ public class AdaptationTask : MonoBehaviour
     public float highPointsThreshold = 0.2f; // threshold for high points
     public int lowPoints = 1;
     public int highPoints = 3;
-    
+
     public float initBalloonSize = 0.001f;
     public float minGrowSpeed = 0.001f;
     public float maxGrowSpeed = 0.003f;
@@ -29,11 +32,12 @@ public class AdaptationTask : MonoBehaviour
     public float roundTime = 120f; // in seconds; duration of one round
     public int roundCounter = 0; // counter for the current round
     public int totalRounds = 0;
-    private List<float> highScores = new List<float>();
-    private float roundTimer = 0f; // timer for the current round
-    private bool inRound = false; // flag to check if we are in a round
+    [HideInInspector] public List<float> highScores = new List<float>();
+    [HideInInspector] public float roundTimer = 0f; // timer for the current round
+    [HideInInspector] public bool inRound = false; // flag to check if we are in a round
 
     [Header("Spawn Settings")]
+    public bool shouldRespawn = true;
     public float spawnDelay = 2f; // delay between destruction of balloon and spawning a new one
     private float timer = 0f; // timer for the current run
     public Vector3 spawnAreaLowerBounds;
@@ -44,10 +48,13 @@ public class AdaptationTask : MonoBehaviour
     [Header("Debug Data")]
     public float duration = 120f; // in seconds; duration of the test
     private List<Balloon> balloons = new List<Balloon>();
-    private int score = 0;
-    private TMP_Text scoreText;
-    private TMP_Text timerText;
-    private TMP_Text highScoreText;
+    public bool HasBalloons => balloons.Count > 0;
+    [HideInInspector] public int score = 0;
+    private bool buttonPressed;
+    public event Action OnRoundStart;
+    public event Action OnRoundOver;
+    public event Action<string> OnNextTrainingStep;
+
     void Start()
     {
         // check if enough colors are provided
@@ -59,11 +66,6 @@ public class AdaptationTask : MonoBehaviour
 
         // start the timer
         timer = Time.time;
-        // show score on the TextMeshPro object
-        scoreText = GameObject.Find("ScoreText").GetComponent<TMP_Text>();
-        timerText = GameObject.Find("TimerText").GetComponent<TMP_Text>();
-        highScoreText = GameObject.Find("RoundText").GetComponent<TMP_Text>();
-        UpdateTexts();
 
         // set the min and max grow speed for all balloons
         Balloon.minGrowSpeed = minGrowSpeed;
@@ -71,12 +73,69 @@ public class AdaptationTask : MonoBehaviour
         Balloon.maxSize = explodeSize;
     }
 
+    public IEnumerator RunTraining(List<string> pathList)
+    {
+        Vector3 spawnPos = Vector3.zero;
+
+        for (int step = 0; step < pathList.Count; step++)
+        {
+            string pathToText = Path.Combine(Application.dataPath, pathList[step]);
+            Debug.Log(pathToText);
+            
+            // TODO Put readtext to utils ?
+            string nextInstructionText = ReadText(pathToText);
+            Debug.Log(nextInstructionText);
+            OnNextTrainingStep?.Invoke(nextInstructionText);
+
+            buttonPressed = false;
+            switch (step)
+            {
+                case 0: // Show Welcome Text
+                    yield return new WaitUntil(() => buttonPressed);
+                    break;
+
+                case 1: // Show LookAround Text
+                    yield return new WaitUntil(() => buttonPressed);
+                    break;
+
+                case 2: // Destroy a green balloon
+                    yield return new WaitForSeconds(1);
+                    // Determine position and spawn the balloon
+                    spawnPos = Camera.main.transform.position + new Vector3(-1.0f, 0, 1.5f);
+                    SpawnForTutorial(0, spawnPos);
+                    yield return null;
+                    // wait until balloon is destroyed
+                    yield return new WaitUntil(() => !HasBalloons);
+                    break;
+
+                case 3: // Destroy a blue balloon
+                    yield return new WaitForSeconds(1);
+                    // Determine position and spawn the balloon
+                    spawnPos = Camera.main.transform.position + new Vector3(-1.0f, 0, 1.5f);
+                    SpawnForTutorial(1, spawnPos);
+                    yield return null;
+                    // wait until balloon is destroyed
+                    yield return new WaitUntil(() => !HasBalloons);
+                    break;
+
+                case 4: // Play one test round
+                    yield return new WaitUntil(() => buttonPressed);
+                    yield return StartCoroutine(StartRound());
+                    // hide instruction and background
+                    break;
+            }
+
+        }
+    }
+
+
     private IEnumerator StartRound()
     {
         // reset score and timer
         score = 0;
         roundTimer = Time.time;
         inRound = true;
+        OnRoundStart?.Invoke();
         roundCounter++;
         // reset the balloons
         foreach (Balloon balloon in balloons)
@@ -87,6 +146,7 @@ public class AdaptationTask : MonoBehaviour
             }
         }
         balloons.Clear();
+        shouldRespawn = true;
         SpawnAllBalloons();
         // wait for the round to finish
         yield return new WaitForSeconds(roundTime);
@@ -109,6 +169,7 @@ public class AdaptationTask : MonoBehaviour
             highScores.RemoveRange(5, highScores.Count - 5);
         }
         inRound = false;
+        OnRoundOver?.Invoke();
     }
 
     private void SpawnAllBalloons()
@@ -116,47 +177,54 @@ public class AdaptationTask : MonoBehaviour
         // spawn target balloons
         for (int balloonId = 0; balloonId < nTargetBalloons; balloonId++)
         {
-               // Start coroutine to spawn balloons with a delay
-                float delay = Random.Range(0f, 1f); // random delay for each balloon
-                StartCoroutine(SpawnBalloon(delay, 0, balloonId,Camera.main.transform.position));
-                
+            // Start coroutine to spawn balloons with a delay
+            float delay = Random.Range(0f, 1f); // random delay for each balloon
+            Vector3 newPos = FindNewPosition(Camera.main.transform.position);
+            StartCoroutine(SpawnBalloon(delay, 0, balloonId, newPos));
         }
-        
+
         // spawn distractor balloons
         for (int balloonId = 0; balloonId < nDistractorBalloons; balloonId++)
         {
             // Start coroutine to spawn balloons with a delay
             float delay = Random.Range(0f, 1f); // random delay for each balloon
-            StartCoroutine(SpawnBalloon(delay, 1, balloonId, Camera.main.transform.position));
+            Vector3 newPos = FindNewPosition(Camera.main.transform.position);
+            StartCoroutine(SpawnBalloon(delay, 1, balloonId, newPos));
         }
     }
 
-    private IEnumerator SpawnBalloon(float delay,int groupId, int balloonId, Vector3 prevLocation)
+    private IEnumerator SpawnBalloon(float delay, int groupId, int balloonId, Vector3 pos)
     {
         // wait for the delay before spawning the balloon
         yield return new WaitForSeconds(delay);
-        if (!inRound)
-        {
-            yield break; // if not in round, do not spawn the balloon
-        }
+        // if (!inRound)
+        // {
+        //     yield break; // if not in round, do not spawn the balloon
+        // }
         // spawn the balloon at the group position with a random offset
-        Vector3 pos = Camera.main.transform.position;
-        while ((Vector3.Distance(pos,Camera.main.transform.position) < playerDistance) || (Vector3.Distance(pos, prevLocation) < prevSpawnDistance))
-        {
-            pos = RandomPointInBounds(spawnAreaLowerBounds, spawnAreaUpperBounds);
-        }
-
         GameObject balloonObj = Instantiate(balloonPrefab, pos, Quaternion.identity);
-        
+
         Balloon balloon = balloonObj.GetComponent<Balloon>();
-        balloon.Initialize(groupId,balloonId,balloonColors[groupId]);
+        balloon.Initialize(groupId, balloonId, balloonColors[groupId]);
         balloon.transform.localScale = new Vector3(initBalloonSize, initBalloonSize, initBalloonSize); // set initial size
         balloon.OnExplode += HandleBalloonExploded;
         balloon.OnPopped += HandleBalloonPopped;
 
         balloons.Add(balloon);
+
         // remove null balloons from the list
         balloons.RemoveAll(b => b == null);
+    }
+
+    private Vector3 FindNewPosition(Vector3 prevLocation)
+    {
+        Vector3 pos = Camera.main.transform.position;
+        while ((Vector3.Distance(pos, Camera.main.transform.position) < playerDistance) || (Vector3.Distance(pos, prevLocation) < prevSpawnDistance))
+        {
+            pos = RandomPointInBounds(spawnAreaLowerBounds, spawnAreaUpperBounds);
+            Debug.Log(pos);
+        }
+        return pos;
     }
 
     public Vector3 RandomPointInBounds(Vector3 lowerBounds, Vector3 upperBounds)
@@ -168,60 +236,8 @@ public class AdaptationTask : MonoBehaviour
         );
     }
 
-    private void UpdateTexts()
-    {
-        if (scoreText != null)
-        {
-            scoreText.text = "Round: " + roundCounter + "/" + totalRounds + "\nScore: " + score;
-        }
-        
-
-        if (timerText != null)
-        {
-            if (inRound)
-            {
-                timerText.text = "Time left: " + Mathf.RoundToInt(roundTime - (Time.time-roundTimer)) + "s";
-            }
-            else
-            {
-                timerText.text = "";
-            }
-        }
-
-        if (highScoreText != null)
-            {
-            if (!inRound)
-            {
-                // if at least one score in the list, show the high score
-                if (highScores.Count > 0)
-                {
-                    highScoreText.text = "High Score:\n" + GetHighScoreText() + "\nPress Trackpad to start next round.";
-                }
-                else
-                {
-                    highScoreText.text = "Destory all green balloons!\nPress Trackpad to start.";
-                }
-            }
-            else
-            {
-                highScoreText.text = "";
-            }
-        }
-        
-        
-    }
-
-    private string GetHighScoreText()
-    {
-        string text = "";
-        for (int i = 0; i < highScores.Count; i++)
-        {
-            text +=  (i + 1) + ": " + highScores[i] + "\n";
-        }
-        return text;
-    }
     void HandleBalloonExploded(Balloon b)
-    { 
+    {
         if (b.groupId == 0) // this was a target balloon, we get negative points
         {
             score -= Mathf.Abs(explodeScore); // take neg abs,then it doesn't matter how the explodeScore was defined (pos or neg)
@@ -233,20 +249,26 @@ public class AdaptationTask : MonoBehaviour
             // destroy the explosion after 1 second
             Destroy(explosion, 1f);
         }
-        
+
         //Instantiate explosion effect at the balloon's position
         // set the color of the explosion to the color of the balloon
         //ParticleSystem.MainModule main = explosion.GetComponent<ParticleSystem>().main;
         // play the particle system
         //main.startColor = b.GetComponent<Renderer>().material.color;
         //explosion.GetComponent<ParticleSystem>().Play();
-        
+
         Debug.Log("Balloon exploded! Score: " + score);
         // start score animation
 
         // spawn a new balloon in the same group
-        float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
-        StartCoroutine(SpawnBalloon(delay,b.groupId, b.balloonId, b.transform.position));
+        if (shouldRespawn)
+        {
+            float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
+            Vector3 newPos = FindNewPosition(b.transform.position);
+            StartCoroutine(SpawnBalloon(delay, b.groupId, b.balloonId, newPos));
+        }
+        // remove null balloons from the list
+        balloons.Remove(b);
     }
 
     void HandleBalloonPopped(Balloon b)
@@ -280,8 +302,14 @@ public class AdaptationTask : MonoBehaviour
         SpawnPoints(b.transform.position, points);
         Debug.Log("Balloon popped! Score: " + score);
         // spawn a new balloon in the same group
-        float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
-        StartCoroutine(SpawnBalloon(delay, b.groupId, b.balloonId, b.transform.position));
+        if (shouldRespawn)
+        {
+            float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
+            Vector3 newPos = FindNewPosition(b.transform.position);
+            StartCoroutine(SpawnBalloon(delay, b.groupId, b.balloonId, newPos));
+        }
+        // remove null balloons from the list
+        balloons.Remove(b);
     }
 
     void SpawnPoints(Vector3 position, int points)
@@ -297,7 +325,7 @@ public class AdaptationTask : MonoBehaviour
         }
         else
         {
-            pointsText.text =  points.ToString();
+            pointsText.text = points.ToString();
         }
         // set text color depending on the points
         if (points > 0)
@@ -310,18 +338,23 @@ public class AdaptationTask : MonoBehaviour
         }
     }
 
-    public void TouchpadPressed() // called by the touchpad of the controller
+    private void OnTouchpad() // called by the touchpad of the controller
     {
-        if (!inRound)
-        {
-            StartCoroutine(StartRound());
-        }
+        buttonPressed = true;
     }
 
     public void StartGame()
     {
         StartCoroutine(StartRound());
     }
+
+    public void SpawnForTutorial(int groupId, Vector3 pos)
+    {
+        Debug.Log("Spawn for tutorial.");
+        shouldRespawn = false;
+        StartCoroutine(SpawnBalloon(0.0f, groupId, 0, pos));
+    }
+
 
     // For testing: destroy balloon with mouse click (or raycast in VR)
     void Update()
@@ -333,28 +366,33 @@ public class AdaptationTask : MonoBehaviour
             StartCoroutine(StartRound());
         }
 
-        if (Input.GetMouseButtonDown(0)) {
+        if (Input.GetMouseButtonDown(0))
+        {
             Debug.Log(Input.mousePosition);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             Debug.DrawRay(ray.origin, 10f * ray.direction, Color.cyan);
-            if (Physics.Raycast(ray, out RaycastHit hit)) {
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
                 Debug.Log(hit.transform.gameObject.name);
                 Balloon balloon = hit.collider.GetComponent<Balloon>();
-                if (balloon != null) {
+                if (balloon != null)
+                {
                     Debug.Log("Balloon Hit");
                     balloon.Pop(ray.direction);
                 }
             }
         }
 
-        UpdateTexts();
+
+
+        //UpdateTexts();
         // check if the time is up
-        if (Time.time - timer >= duration)
-        {
-            Debug.Log("Time's up! Final score: " + score);
-            // handle end of the game, e.g. show results or go to next scene
-            // SceneManager.LoadScene("NextScene");
-        }
+        // if (Time.time - timer >= duration)
+        // {
+        //     Debug.Log("Time's up! Final score: " + score);
+        //     // handle end of the game, e.g. show results or go to next scene
+        //     // SceneManager.LoadScene("NextScene");
+        // }
         // extenstions:
         // 1. Add a timer to the game
         // 2. Increase the speed of the balloons over time
@@ -363,4 +401,16 @@ public class AdaptationTask : MonoBehaviour
         // 5. Add a visual effect for popping balloons
         // 6. Add a countdown timer for the game
     }
+    
+    public string ReadText(string path)
+    {
+        if (!File.Exists(path))
+        {
+            Debug.LogError("No Textfile found.");
+            return null;
+        }
+        string readText = File.ReadAllText(path);
+        return readText;
+    }
+
 }

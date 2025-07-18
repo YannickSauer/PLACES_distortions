@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using System.IO;
 using TMPro;
 
@@ -11,9 +12,10 @@ public class SwimTest : MonoBehaviour
     public float targetDistance = 10f;
     public bool invisibleTarget = false;
     public float headRotationThreshold = 10f;
-    public float timingThreshold = 0.2f; // timing offset allowed for the participant
+    public float timingThreshold = 0.3f; // timing offset allowed for the participant
     public float centerThreshold = 2f;
     public float metronomeFrequency = 1f; // frequency of the metronome in Hz
+    public AudioClip rythmicSound;
 
     private ExperimentManager.AftereffectData aftereffectData;
     public float[] magnificationTrial;
@@ -35,6 +37,12 @@ public class SwimTest : MonoBehaviour
     private bool touchpadPressed = false;
     private string filePath;
     
+    public Image flashImage;
+    public Color colorRight = new Color(1f, 0f, 1f, 0.2f); // Magenta with 20% opacity
+    public Color colorLeft = new Color(0f, 1f, 1f, 0.2f); // Cyan with 20% opacity
+    public float flashDuration = 0.2f;
+    private Coroutine flashCoroutine;
+
     void Start()
     {
         eyeTracker = EyeTrackingToolbox.Instance;
@@ -94,7 +102,6 @@ public class SwimTest : MonoBehaviour
     public IEnumerator Metronome()
     {
         // play a metronome sound at a given frequency
-        AudioSource beep = GetComponent<AudioSource>();
         float waitTime = 1/metronomeFrequency;
         while (true)
         {
@@ -140,8 +147,9 @@ public class SwimTest : MonoBehaviour
         // loop trough all target positions
         initialRotation = Camera.main.transform.rotation;
         initialPosition = Camera.main.transform.position;
-        IEnumerator metronomeCoroutine = Metronome();
-        StartCoroutine(metronomeCoroutine); // start background metronome sound as indicator for the participant to move their head in the given rythm
+        // IEnumerator metronomeCoroutine = Metronome();
+        // StartCoroutine(metronomeCoroutine); // start background metronome sound as indicator for the participant to move their head in the given rythm
+        AudioSource.PlayClipAtPoint(rythmicSound, Camera.main.transform.position);
         int goodTrial = 0;
         TMP_Text goodTrialText = GameObject.Find("Text").GetComponent<TMP_Text>();
         goodTrialText.text = goodTrial.ToString();
@@ -157,18 +165,19 @@ public class SwimTest : MonoBehaviour
         // wait for full head rotation left or right
         yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
         PlayBeep(0.7f); // low pitch metronom sound
-        if ((Time.time - lastBeepTime < timingThreshold) || (nextBeepTime - Time.time < timingThreshold))
-        {
-            // if the participant moved in the right time, then increase the good trial counter
-            goodTrial++;
-            goodTrialText.text = goodTrial.ToString();
+        lastBeepTime = Time.time;
+        // if ((Time.time - lastBeepTime < timingThreshold) || (nextBeepTime - Time.time < timingThreshold))
+        // {
+        //     // if the participant moved in the right time, then increase the good trial counter
+        //     goodTrial++;
+        //     goodTrialText.text = goodTrial.ToString();
 
-        }
-        else
-        {
-            goodTrial = 0;
-            goodTrialText.text = goodTrial.ToString();
-        }
+        // }
+        // else
+        // {
+        //     goodTrial = 0;
+        //     goodTrialText.text = goodTrial.ToString();
+        // }
 
         while (goodTrial < 10)
         {
@@ -179,12 +188,13 @@ public class SwimTest : MonoBehaviour
             }
             else // if the head is rotated to the left
             {
-               
+
                 // wait for head to rotate right
                 yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
             }
             PlayBeep(0.7f); // low pitch metronom sound
-            if ((Time.time - lastBeepTime < timingThreshold) || (nextBeepTime - Time.time < timingThreshold))
+            Debug.Log(Time.time - lastBeepTime - metronomeFrequency);
+            if (Mathf.Abs(Time.time - lastBeepTime - metronomeFrequency) < timingThreshold)
             {
                 // if the participant moved in the right time, then increase the good trial counter
                 goodTrial++;
@@ -197,9 +207,10 @@ public class SwimTest : MonoBehaviour
                 goodTrial = 0;
                 goodTrialText.text = goodTrial.ToString();
             }
+            lastBeepTime = Time.time;
         }
         Debug.Log("Headmovement training completed.");
-        StopCoroutine(metronomeCoroutine);
+        // StopCoroutine(metronomeCoroutine);
         if(eyeTracker != null)
         {
             eyeTracker.StopRecording();
@@ -222,8 +233,8 @@ public class SwimTest : MonoBehaviour
         yield return new WaitForSeconds(2f);
 
         // wait for the participant to rotate towards the test direction
-        var sceneTestManager = GameObject.Find("SceneTestManager");
-        yield return sceneTestManager.GetComponent<InterTrialInterval>().InterTripletInterval();
+        // var sceneTestManager = GameObject.Find("SceneTestManager");
+        // yield return sceneTestManager.GetComponent<InterTrialInterval>().InterTripletInterval();
         // while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
         // {
         //     yield return null;
@@ -305,7 +316,7 @@ public class SwimTest : MonoBehaviour
             {
                 eyeTracker.WriteMessage("StopTestTrial" + aftereffectData.currentTrial);
             }
-            PlayBeep();
+            PlayBeep(0.8f);
 
             // remove the random dots
             dotManager.active = false;
@@ -324,10 +335,12 @@ public class SwimTest : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed)
             {
                 SaveTrial(1);
+                Flash(colorLeft, flashDuration);
             }
             else if (Input.GetKeyDown(KeyCode.RightArrow) || fireRightPressed)
             {
                 SaveTrial(0);
+                Flash(colorRight, flashDuration);
             }
             else
             {
@@ -363,6 +376,47 @@ public class SwimTest : MonoBehaviour
         AudioSource beep = GetComponent<AudioSource>();
         beep.pitch = pitch;
         beep.Play();
+    }
+
+    public void Flash(Color color, float duration = 0.2f)
+    {
+        if (flashCoroutine != null)
+        {
+            StopCoroutine(flashCoroutine);
+        }
+        flashCoroutine = StartCoroutine(FlashRoutine(color, duration));
+    }
+
+    private IEnumerator FlashRoutine(Color color, float duration)
+    {
+        float maxAlpha = color.a;
+        color.a = 0;
+        float t = 0;
+        float halfDuration = duration / 2;
+        
+        // FadeIn
+        while (t < halfDuration)
+        {
+            t += Time.deltaTime;
+            color.a = maxAlpha * t / halfDuration;
+            flashImage.color = color;
+            yield return null;
+        }
+        color.a = maxAlpha;
+        flashImage.color = color;
+        yield return null;
+
+        // FadeOut
+        t = 0;
+        while (t < halfDuration)
+        {
+            t += Time.deltaTime;
+            color.a = maxAlpha - maxAlpha * t / halfDuration;
+            flashImage.color = color;
+            yield return null;
+        }
+        
+        flashImage.color = new Color(color.r, color.g, color.b, 0f); // Transparent
     }
 
     // return horizontal rotation of the camera relative to the starting position

@@ -1,7 +1,9 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System;
 
 public class ExperimentManager : MonoBehaviour
 {
@@ -45,7 +47,6 @@ public class ExperimentManager : MonoBehaviour
     }
     
     [Header("Experiment Settings")]
-    
     public AdaptationPhaseSettings adaptationPhaseSettings;
     public AftereffectSettings aftereffectSettings;
     
@@ -59,6 +60,10 @@ public class ExperimentManager : MonoBehaviour
     private bool isRunning = false;
     private Distortions distortions;
     private EyeTrackingToolbox eyeTracker;
+
+    [Header("Training Settings")]
+    public List<string> pathList;
+    private bool buttonPressed = false;
 
 
     void Awake()
@@ -84,11 +89,11 @@ public class ExperimentManager : MonoBehaviour
         // output = "./measurements/subjectID/results.csv"
         string projectPath = Directory.GetParent(Application.dataPath).FullName;
         outputDirectory = Path.Combine(projectPath, "measurements", subjectID.ToString() + "_" + System.DateTime.Now.ToString("yyMMddHHmm"));
-        
+
         // create the directory if it does not exist
         if (!Directory.Exists(outputDirectory))
         {
-            Directory.CreateDirectory(outputDirectory); 
+            Directory.CreateDirectory(outputDirectory);
         }
 
         // fill the trial variables
@@ -107,6 +112,7 @@ public class ExperimentManager : MonoBehaviour
         {
             eyeTracker.SetOutputFolder(outputDirectory);
         }
+        
     }
 
     private AftereffectData GetAftereffectData()
@@ -128,16 +134,73 @@ public class ExperimentManager : MonoBehaviour
 
     private void Update()
     {
-        if(!isRunning && Input.GetKeyDown(KeyCode.Space))
+        if (!isRunning && Input.GetKeyDown(KeyCode.T))
+        {
+            StartCoroutine(RunTraining());
+        }
+        if (!isRunning && Input.GetKeyDown(KeyCode.Space))
         {
             StartCoroutine(RunExperiment());
         }
+    }
+
+    private IEnumerator RunTraining()
+    {
+        Debug.Log("Starting training...");
+        isRunning = true;
+// Start head movement training
+        yield return StartCoroutine(HeadMovementTraining());
+        // Start balloon game training
+        yield return StartCoroutine(BalloonGameTraining());
+
+        // Start head movement training
+        yield return StartCoroutine(HeadMovementTraining());
+
+        isRunning = false;
+    }
+
+    private IEnumerator BalloonGameTraining()
+    {
+        // Switch to adaptation scene
+        yield return StartCoroutine(SwitchScene(adaptationPhaseSettings.sceneName));
+
+        // Find Test Manager 
+        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+        if (testManagerObject == null)
+        {
+            Debug.LogError("SceneTestManager tagged object not found!");
+            yield break; // Stop execution if the object isn't found
+        }
+
+        AdaptationTask testManager = testManagerObject.GetComponent<AdaptationTask>();
+
+        yield return StartCoroutine(testManager.RunTraining(pathList));
+    }
+
+    private IEnumerator HeadMovementTraining()
+    {
+        // Switch to swim test scene
+        yield return StartCoroutine(SwitchScene(aftereffectSettings.sceneName));
+
+        // Find Test Manager 
+        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+        if (testManagerObject == null)
+        {
+            Debug.LogError("SceneTestManager tagged object not found!");
+            yield break; // Stop execution if the object isn't found
+        }
+
+        SwimTest testManager = testManagerObject.GetComponent<SwimTest>();
+
+        yield return StartCoroutine(testManager.RunTraining());
     }
 
     private IEnumerator RunExperiment()
     {
         Debug.Log("Starting experiment...");
         isRunning = true;
+
+
         ////////////////////
         // Baseline phase///
         ////////////////////
@@ -154,7 +217,14 @@ public class ExperimentManager : MonoBehaviour
         int roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
-            eyeTracker?.StartRecording("baseline");
+            // Find the GameObject that contains the script responsible for the coroutine
+            GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+            if (testManagerObject == null)
+            {
+                Debug.LogError("SceneTestManager tagged object not found!");
+                yield break; // Stop execution if the object isn't found
+            }
+            yield return testManagerObject.GetComponent<RecenterHead>().RunRecenter();
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
             yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, roundCounter)); // adaptation phase for topUpDuration seconds
@@ -173,7 +243,7 @@ public class ExperimentManager : MonoBehaviour
         eyeTracker?.StartRecording("adaptation");
         yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration, 0)); // adaptation phase with distortions
         eyeTracker?.StopRecording();
-        distortions.active = false;
+        //distortions.active = false;
 
         ///////////////////////
         // Aftereffect phase //
@@ -186,13 +256,22 @@ public class ExperimentManager : MonoBehaviour
         roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
+            // Find the GameObject that contains the script responsible for the coroutine
+            GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+            if (testManagerObject == null)
+            {
+                Debug.LogError("SceneTestManager tagged object not found!");
+                yield break; // Stop execution if the object isn't found
+            }
+            yield return testManagerObject.GetComponent<RecenterHead>().RunRecenter();
+            adaptationPhaseData.inAdaptationPhase = false;
+            distortions.active = false;
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
             // return to adaptation scene for top-up with distortions
             distortions.active = true;
             yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, roundCounter)); // adaptation phase for topUpDuration seconds
             roundCounter++;
-            distortions.active = false;
         }
         eyeTracker?.StopRecording();
         Debug.Log("Experiment completed.");
@@ -200,7 +279,7 @@ public class ExperimentManager : MonoBehaviour
         isRunning = false;
 
         yield return new WaitForSeconds(1);
-        Application.Quit();
+        UnityEditor.EditorApplication.isPlaying = false;
     }
 
     private IEnumerator AdaptationPhase(float adaptationDuration, int roundCounter)
@@ -244,6 +323,7 @@ public class ExperimentManager : MonoBehaviour
             else
             {
                 testManager.totalRounds = Mathf.FloorToInt(aftereffectData.nTrials / aftereffectSettings.topupFrequency);
+                Debug.Log(aftereffectData.nTrials + " /"+ aftereffectSettings.topupFrequency+ " = "+ testManager.totalRounds);
                 testManager.roundTime = adaptationDuration;
             }
         }
@@ -319,4 +399,6 @@ public class ExperimentManager : MonoBehaviour
         // Wait until the scene is fully loaded before proceeding
         yield return new WaitUntil(() => SceneManager.GetActiveScene().name == sceneName);
     }
+
+
 }
