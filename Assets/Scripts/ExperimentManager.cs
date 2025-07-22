@@ -63,8 +63,6 @@ public class ExperimentManager : MonoBehaviour
 
     [Header("Training Settings")]
     public List<string> pathList;
-    private bool buttonPressed = false;
-
 
     void Awake()
     {
@@ -148,8 +146,7 @@ public class ExperimentManager : MonoBehaviour
     {
         Debug.Log("Starting training...");
         isRunning = true;
-// Start head movement training
-        yield return StartCoroutine(HeadMovementTraining());
+
         // Start balloon game training
         yield return StartCoroutine(BalloonGameTraining());
 
@@ -318,10 +315,12 @@ public class ExperimentManager : MonoBehaviour
             // Change round info according adaptation or top up phase
             if (adaptationPhaseData.inAdaptationPhase)
             {
+                testManager.canPlayAgain = true;
                 testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
             }
             else
             {
+                testManager.canPlayAgain = false;
                 testManager.totalRounds = Mathf.FloorToInt(aftereffectData.nTrials / aftereffectSettings.topupFrequency);
                 Debug.Log(aftereffectData.nTrials + " /"+ aftereffectSettings.topupFrequency+ " = "+ testManager.totalRounds);
                 testManager.roundTime = adaptationDuration;

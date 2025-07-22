@@ -49,8 +49,11 @@ public class AdaptationTask : MonoBehaviour
     public float duration = 120f; // in seconds; duration of the test
     private List<Balloon> balloons = new List<Balloon>();
     public bool HasBalloons => balloons.Count > 0;
+    public bool HasNextRound => (totalRounds > roundCounter) && canPlayAgain;
+    public bool canPlayAgain;
     [HideInInspector] public int score = 0;
     private bool buttonPressed;
+    private bool isTraining = false;
     public event Action OnRoundStart;
     public event Action OnRoundOver;
     public event Action<string> OnNextTrainingStep;
@@ -75,13 +78,14 @@ public class AdaptationTask : MonoBehaviour
 
     public IEnumerator RunTraining(List<string> pathList)
     {
+        isTraining = true;
         Vector3 spawnPos = Vector3.zero;
 
         for (int step = 0; step < pathList.Count; step++)
         {
             string pathToText = Path.Combine(Application.dataPath, pathList[step]);
             Debug.Log(pathToText);
-            
+
             // TODO Put readtext to utils ?
             string nextInstructionText = ReadText(pathToText);
             Debug.Log(nextInstructionText);
@@ -99,7 +103,7 @@ public class AdaptationTask : MonoBehaviour
                     break;
 
                 case 2: // Destroy a green balloon
-                    yield return new WaitForSeconds(1);
+                    yield return new WaitForSeconds(5);
                     // Determine position and spawn the balloon
                     spawnPos = Camera.main.transform.position + new Vector3(-1.0f, 0, 1.5f);
                     SpawnForTutorial(0, spawnPos);
@@ -109,7 +113,7 @@ public class AdaptationTask : MonoBehaviour
                     break;
 
                 case 3: // Destroy a blue balloon
-                    yield return new WaitForSeconds(1);
+                    yield return new WaitForSeconds(3);
                     // Determine position and spawn the balloon
                     spawnPos = Camera.main.transform.position + new Vector3(-1.0f, 0, 1.5f);
                     SpawnForTutorial(1, spawnPos);
@@ -120,12 +124,19 @@ public class AdaptationTask : MonoBehaviour
 
                 case 4: // Play one test round
                     yield return new WaitUntil(() => buttonPressed);
-                    yield return StartCoroutine(StartRound());
                     // hide instruction and background
+                    OnNextTrainingStep.Invoke("hide");
+                    yield return StartCoroutine(StartRound());
+
+                    break;
+
+                case 5: // Recenter head
+                    yield return new WaitForSeconds(5);
+                    yield return this.GetComponent<RecenterHead>().RunRecenter();
                     break;
             }
-
         }
+        isTraining = false;
     }
 
 
@@ -267,8 +278,12 @@ public class AdaptationTask : MonoBehaviour
             Vector3 newPos = FindNewPosition(b.transform.position);
             StartCoroutine(SpawnBalloon(delay, b.groupId, b.balloonId, newPos));
         }
+        else
+        {
+            StartCoroutine(SpawnBalloon(0f, b.groupId, b.balloonId, b.transform.position));
+        }
         // remove null balloons from the list
-        balloons.Remove(b);
+            balloons.Remove(b);
     }
 
     void HandleBalloonPopped(Balloon b)
@@ -341,6 +356,10 @@ public class AdaptationTask : MonoBehaviour
     private void OnTouchpad() // called by the touchpad of the controller
     {
         buttonPressed = true;
+        if (!isTraining && !inRound)
+        {
+            StartCoroutine(StartRound());
+        }
     }
 
     public void StartGame()
@@ -412,5 +431,4 @@ public class AdaptationTask : MonoBehaviour
         string readText = File.ReadAllText(path);
         return readText;
     }
-
 }

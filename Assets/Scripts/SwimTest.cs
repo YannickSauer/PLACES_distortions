@@ -14,8 +14,6 @@ public class SwimTest : MonoBehaviour
     public float headRotationThreshold = 10f;
     public float timingThreshold = 0.3f; // timing offset allowed for the participant
     public float centerThreshold = 2f;
-    public float metronomeFrequency = 1f; // frequency of the metronome in Hz
-    public AudioClip rythmicSound;
 
     private ExperimentManager.AftereffectData aftereffectData;
     public float[] magnificationTrial;
@@ -30,8 +28,8 @@ public class SwimTest : MonoBehaviour
     private DotManager dotManager;
     private float initTargetScale;
     public GameObject scene;
-    private float lastBeepTime;
-    private float nextBeepTime;
+    private float lastBeatTime;
+    private float nextBeatTime;
     private bool fireLeftPressed = false;
     private bool fireRightPressed = false;
     private bool touchpadPressed = false;
@@ -42,6 +40,14 @@ public class SwimTest : MonoBehaviour
     public Color colorLeft = new Color(0f, 1f, 1f, 0.2f); // Cyan with 20% opacity
     public float flashDuration = 0.2f;
     private Coroutine flashCoroutine;
+
+
+    [Header("Training settings")]
+    public float bpm; // frequency of the metronome in bpm
+    public float firstBeat;
+    private float lastBeatNum;
+    private GameObject trainingsObj;
+    private AudioSource metronomeSong;
 
     void Start()
     {
@@ -99,24 +105,54 @@ public class SwimTest : MonoBehaviour
      
     }
 
-    public IEnumerator Metronome()
-    {
-        // play a metronome sound at a given frequency
-        float waitTime = 1/metronomeFrequency;
-        while (true)
-        {
-            PlayBeep(1.25f); // high pitch metronom sound
-            // save time to compare participant movement with the metronome
-            lastBeepTime = Time.time;
-            nextBeepTime = lastBeepTime + waitTime;
-            yield return new WaitForSeconds(waitTime);
+    // public IEnumerator Metronome()
+    // {
+    //     // set waitTime according to metronome frequency
+    //     float beatInterval = 60f/bpm;
+    //     Debug.Log("Wait time: " + beatInterval);
+    //     // set metronome audio to start at first beat
+    //     metronomeSong.time = firstBeat;
+    //     Debug.Log("Start song: "+metronomeSong.time+ " "+ firstBeat);
+    //     lastBeatTime = firstBeat;
+    //     nextBeatTime = lastBeatTime + beatInterval;
+    //     metronomeSong.Play();
 
-            PlayBeep(1f); // low pitch metronom sound
-            // save time to compare participant movement with the metronome
-            lastBeepTime = Time.time;
-            nextBeepTime = lastBeepTime + waitTime;
-            yield return new WaitForSeconds(waitTime);
+    //     while (true)
+    //     {
+    //         // predict next beat
+    //         nextBeatTime = lastBeatTime + beatInterval;
+    //         Debug.Log("Last Beat: " + lastBeatTime + ", Next Beat: " + nextBeatTime);
+    //         // wait for next beat
+    //         Debug.Log("Time before wait: " + Time.time);
+    //         yield return new WaitForSecondsRealtime(beatInterval);
+    //         Debug.Log("Time after wait: " + Time.time);
+    //         // record time of beat
+    //         lastBeatTime = metronomeSong.time;
+
+    //     }
+    // }
+
+    public bool CheckOnBeat()
+    {
+        float beatInterval = 60f / bpm;
+        float currSongTime = metronomeSong.time - firstBeat;
+
+        if (currSongTime < 0f) return false;
+
+        Debug.Log("Position in song: " + metronomeSong.time);
+        float beatNum = Mathf.Round(currSongTime / beatInterval);
+
+        if (beatNum - lastBeatNum > 1)
+        {
+            lastBeatNum = beatNum;
+            return false;
         }
+        else { lastBeatNum = beatNum; }
+
+        float nearestBeatTime = beatNum * beatInterval;
+        float error = Mathf.Abs(currSongTime - nearestBeatTime);
+
+        return error < timingThreshold;
     }
 
     // Training phase for participants to learn the timing of the head movements
@@ -126,8 +162,16 @@ public class SwimTest : MonoBehaviour
     // the training is completed when the participant has 10 good trials in a row
     public IEnumerator RunTraining()
     {
+        // Prepare Training
+        trainingsObj = GameObject.Find("Training");
+        metronomeSong = trainingsObj.GetComponent<AudioSource>();
+
+        TMP_Text goodTrialText = GameObject.Find("Text").GetComponent<TMP_Text>();
+        int goodTrial = 0;
+        // IEnumerator metronomeCoroutine = Metronome();
+
         yield return null;
-        yield return null;
+
         Debug.Log("Starting headmovement training.");
         //eyeTracker.StartRecording(fileName);
         //TODO: fill the trial variables        
@@ -137,9 +181,7 @@ public class SwimTest : MonoBehaviour
             yield return null;
         }
 
-        var trainingsDisp = GameObject.Find("Training");
-        Debug.Log(new Vector3(trainingsDisp.transform.position.x, Camera.main.transform.position.y, trainingsDisp.transform.position.z));
-        trainingsDisp.transform.position = new Vector3(trainingsDisp.transform.position.x, Camera.main.transform.position.y, trainingsDisp.transform.position.z);
+        trainingsObj.transform.position = new Vector3(trainingsObj.transform.position.x, Camera.main.transform.position.y, trainingsObj.transform.position.z);
 
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
@@ -147,37 +189,39 @@ public class SwimTest : MonoBehaviour
         // loop trough all target positions
         initialRotation = Camera.main.transform.rotation;
         initialPosition = Camera.main.transform.position;
-        // IEnumerator metronomeCoroutine = Metronome();
-        // StartCoroutine(metronomeCoroutine); // start background metronome sound as indicator for the participant to move their head in the given rythm
-        AudioSource.PlayClipAtPoint(rythmicSound, Camera.main.transform.position);
-        int goodTrial = 0;
-        TMP_Text goodTrialText = GameObject.Find("Text").GetComponent<TMP_Text>();
+
+
         goodTrialText.text = goodTrial.ToString();
         scene.SetActive(true);
         dotManager.active = false;
-       
+
         if (eyeTracker != null)
         {
             eyeTracker.WriteMessage("StartTrainingTrial" + aftereffectData.currentTrial);
         }
-        // save initial rotation of the camera
-            
+
+        // start background metronome sound as indicator for the participant to move their head in the given rythm
+        // StartCoroutine(metronomeCoroutine);
+        metronomeSong.Play();
+
         // wait for full head rotation left or right
         yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
         PlayBeep(0.7f); // low pitch metronom sound
-        lastBeepTime = Time.time;
-        // if ((Time.time - lastBeepTime < timingThreshold) || (nextBeepTime - Time.time < timingThreshold))
-        // {
-        //     // if the participant moved in the right time, then increase the good trial counter
-        //     goodTrial++;
-        //     goodTrialText.text = goodTrial.ToString();
 
-        // }
-        // else
-        // {
-        //     goodTrial = 0;
-        //     goodTrialText.text = goodTrial.ToString();
-        // }
+        // check if head rotation timing close enough to song beat
+        // if ((Time.time - lastBeatTime < timingThreshold) || (nextBeatTime - Time.time < timingThreshold))
+        if (CheckOnBeat())
+        {
+            // if the participant moved in the right time, then increase the good trial counter
+            goodTrial++;
+            goodTrialText.text = goodTrial.ToString();
+
+        }
+        else
+        {
+            goodTrial = 0;
+            goodTrialText.text = goodTrial.ToString();
+        }
 
         while (goodTrial < 10)
         {
@@ -193,8 +237,8 @@ public class SwimTest : MonoBehaviour
                 yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
             }
             PlayBeep(0.7f); // low pitch metronom sound
-            Debug.Log(Time.time - lastBeepTime - metronomeFrequency);
-            if (Mathf.Abs(Time.time - lastBeepTime - metronomeFrequency) < timingThreshold)
+
+            if (CheckOnBeat())
             {
                 // if the participant moved in the right time, then increase the good trial counter
                 goodTrial++;
@@ -207,15 +251,15 @@ public class SwimTest : MonoBehaviour
                 goodTrial = 0;
                 goodTrialText.text = goodTrial.ToString();
             }
-            lastBeepTime = Time.time;
+            lastBeatTime = Time.time;
         }
         Debug.Log("Headmovement training completed.");
         // StopCoroutine(metronomeCoroutine);
-        if(eyeTracker != null)
+        if (eyeTracker != null)
         {
             eyeTracker.StopRecording();
         }
-        
+
     }
 
     public IEnumerator RunTest(int nTrialsBlock = -1) // run a block of nTrialsBlock Trials. If 

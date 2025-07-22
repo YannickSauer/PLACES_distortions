@@ -41,8 +41,8 @@ public class DisplayInformation : MonoBehaviour
         highScoreText = GameObject.Find("RoundText").GetComponent<TMP_Text>();
         instructionText = GameObject.Find("InstructionText").GetComponent<TMP_Text>();
 
-        instructionText.text = "";
         highScoreText.text = "";
+        UpdateInstructionText("hide");
         UpdateGameUITexts();
     }
 
@@ -54,18 +54,25 @@ public class DisplayInformation : MonoBehaviour
 
     public void UpdateHighscoreText()
     {
+
         if (highScoreText != null)
         {
-            // if at least one score in the list, show the high score
-            if (adaptationTask.highScores.Count > 0)
+            if (adaptationTask.HasNextRound)
             {
-                highScoreText.text = "High Score:\n" + GetHighScoreText() + "\nPress Trackpad to start next round.";
+                // if at least one score in the list, show the high score
+                if (adaptationTask.highScores.Count > 0)
+                {
+                    highScoreText.text = "High Score:\n" + GetHighScoreText() + "\nPress Trackpad to start next round.";
+                }
+                else
+                {
+                    highScoreText.text = "Destory all green balloons!\nPress Trackpad to start.";
+                }
             }
             else
             {
-                highScoreText.text = "Destory all green balloons!\nPress Trackpad to start.";
+                highScoreText.text = "";
             }
-
         }
         else
         {
