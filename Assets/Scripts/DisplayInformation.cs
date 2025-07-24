@@ -12,38 +12,54 @@ public class DisplayInformation : MonoBehaviour
     private TMP_Text highScoreText;
     private TMP_Text instructionText;
     private AdaptationTask adaptationTask;
+    private SwimTest swimTest;
 
     void Awake()
     {
-        adaptationTask = this.GetComponent<AdaptationTask>();   
+        adaptationTask = this.GetComponent<AdaptationTask>();
+        swimTest = this.GetComponent<SwimTest>();
     }
 
     void OnEnable()
     {
-        adaptationTask.OnRoundOver += UpdateHighscoreText;
-        adaptationTask.OnRoundStart += HideHighscoreText;
-        adaptationTask.OnNextTrainingStep += UpdateInstructionText;
+        if (adaptationTask != null)
+        {
+            adaptationTask.OnRoundOver += UpdateHighscoreText;
+            adaptationTask.OnRoundStart += HideHighscoreText;
+            adaptationTask.OnNextTrainingStep += UpdateInstructionText;
+        }
+        if (swimTest != null)
+        {
+            swimTest.OnNextTrainingStep += UpdateInstructionText;
+        }
     }
 
     void OnDisable()
     {
-        adaptationTask.OnRoundOver -= UpdateHighscoreText;
-        adaptationTask.OnRoundStart -= HideHighscoreText;
-        adaptationTask.OnNextTrainingStep -= UpdateInstructionText;
+        if (adaptationTask != null)
+        {
+            adaptationTask.OnRoundOver -= UpdateHighscoreText;
+            adaptationTask.OnRoundStart -= HideHighscoreText;
+            adaptationTask.OnNextTrainingStep -= UpdateInstructionText;
+        }
+        if (swimTest != null)
+        {
+            swimTest.OnNextTrainingStep -= UpdateInstructionText;
+        }
     }
 
     // Start is called before the first frame update
     void Start()
     {
         // Get text objects
-        scoreText = GameObject.Find("ScoreText").GetComponent<TMP_Text>();
-        timerText = GameObject.Find("TimerText").GetComponent<TMP_Text>();
-        highScoreText = GameObject.Find("RoundText").GetComponent<TMP_Text>();
-        instructionText = GameObject.Find("InstructionText").GetComponent<TMP_Text>();
+        scoreText = GameObject.Find("ScoreText")?.GetComponent<TMP_Text>();
+        timerText = GameObject.Find("TimerText")?.GetComponent<TMP_Text>();
+        highScoreText = GameObject.Find("RoundText")?.GetComponent<TMP_Text>();
+        instructionText = GameObject.Find("InstructionText")?.GetComponent<TMP_Text>();
 
-        highScoreText.text = "";
-        UpdateInstructionText("hide");
+        if (highScoreText != null) highScoreText.text = "";
         UpdateGameUITexts();
+        UpdateInstructionText("hide");
     }
 
     // Update is called once per frame
@@ -100,6 +116,7 @@ public class DisplayInformation : MonoBehaviour
 
     public void UpdateInstructionText(string newText)
     {
+        Debug.Log(newText);
         if (instructionText != null)
         {
             if (newText == "hide")

@@ -2881,6 +2881,13 @@ MonoBehaviour:
   spawnAreaUpperBounds: {x: 2.5, y: 2.2, z: 2.8}
   playerDistance: 1
   prevSpawnDistance: 2
+  pathList:
+  - ./Instructions/Welcome.txt
+  - ./Instructions/LookAround.txt
+  - ./Instructions/TryShootingGreen.txt
+  - ./Instructions/TryShootingBlue.txt
+  - ./Instructions/TestRound.txt
+  - ./Instructions/Recenter.txt
   duration: 120
   canPlayAgain: 0
   score: 0

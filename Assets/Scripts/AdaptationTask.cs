@@ -45,6 +45,9 @@ public class AdaptationTask : MonoBehaviour
     public float playerDistance; // minimum distnace to player
     public float prevSpawnDistance; // minimum distance to previous spawn location
 
+    [Header("Trainings Settings")]
+    public List<string> pathList;
+
     [Header("Debug Data")]
     public float duration = 120f; // in seconds; duration of the test
     private List<Balloon> balloons = new List<Balloon>();
@@ -57,6 +60,8 @@ public class AdaptationTask : MonoBehaviour
     public event Action OnRoundStart;
     public event Action OnRoundOver;
     public event Action<string> OnNextTrainingStep;
+
+
 
     void Start()
     {
@@ -76,7 +81,7 @@ public class AdaptationTask : MonoBehaviour
         Balloon.maxSize = explodeSize;
     }
 
-    public IEnumerator RunTraining(List<string> pathList)
+    public IEnumerator RunTraining()
     {
         isTraining = true;
         Vector3 spawnPos = Vector3.zero;
@@ -125,7 +130,7 @@ public class AdaptationTask : MonoBehaviour
                 case 4: // Play one test round
                     yield return new WaitUntil(() => buttonPressed);
                     // hide instruction and background
-                    OnNextTrainingStep.Invoke("hide");
+                    OnNextTrainingStep?.Invoke("hide");
                     yield return StartCoroutine(StartRound());
 
                     break;

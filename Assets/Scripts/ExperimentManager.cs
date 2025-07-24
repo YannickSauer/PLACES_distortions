@@ -61,9 +61,6 @@ public class ExperimentManager : MonoBehaviour
     private Distortions distortions;
     private EyeTrackingToolbox eyeTracker;
 
-    [Header("Training Settings")]
-    public List<string> pathList;
-
     void Awake()
     {
         if (Instance == null)
@@ -148,7 +145,7 @@ public class ExperimentManager : MonoBehaviour
         isRunning = true;
 
         // Start balloon game training
-        yield return StartCoroutine(BalloonGameTraining());
+        // yield return StartCoroutine(BalloonGameTraining());
 
         // Start head movement training
         yield return StartCoroutine(HeadMovementTraining());
@@ -171,7 +168,7 @@ public class ExperimentManager : MonoBehaviour
 
         AdaptationTask testManager = testManagerObject.GetComponent<AdaptationTask>();
 
-        yield return StartCoroutine(testManager.RunTraining(pathList));
+        yield return StartCoroutine(testManager.RunTraining());
     }
 
     private IEnumerator HeadMovementTraining()
