@@ -1,6 +1,7 @@
-Welcome to our Adaptation Experiment!
+<b>Welcome to the Adaptation Experiment!</b>
 
-In this experiment you are going to help us collecting data on adaptation processes of the visual system. 
-We will collect eye tracking data and qualitative responses - all you have to do is playing our little balloon shooting game and do short movement assessment tests.
+You're helping us study how the visual system adapts. We'll collect eye-tracking data and brief responses while you play a balloon-shooting game and complete short movement tests.
 
-Press the Trackpad to continue. 
+Please read all instructions carefully.
+
+<b>Press the trackpad to continue.</b>

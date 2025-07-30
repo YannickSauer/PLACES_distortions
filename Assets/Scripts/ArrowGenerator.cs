@@ -9,6 +9,7 @@ public class ArrowGenerator : MonoBehaviour
     public float stemWidth;
     public float tipLength;
     public float tipWidth;
+    public float turnByDeg = 180f;
 
     [System.NonSerialized]
     public List<Vector3> verticesList;
@@ -16,6 +17,16 @@ public class ArrowGenerator : MonoBehaviour
     public List<int> trianglesList;
 
     Mesh mesh;
+
+    void OnEnable()
+    {
+        SwimTest.OnTurnHead += TurnAroundZ;
+    }
+
+    void OnDisable()
+    {
+        SwimTest.OnTurnHead -= TurnAroundZ;
+    }
 
     void Start()
     {
@@ -28,6 +39,10 @@ public class ArrowGenerator : MonoBehaviour
     void Update()
     {
         // GenerateArrow();
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            TurnAroundZ();
+        }
     }
 
     //arrow is generated starting at Vector3.zero
@@ -75,8 +90,8 @@ public class ArrowGenerator : MonoBehaviour
         mesh.triangles = trianglesList.ToArray();
     }
 
-    public void TurnAroundZ(float degrees)
+    public void TurnAroundZ()
     {
-        this.transform.Rotate(0f,0f,degrees) ;
+        this.transform.Rotate(0f,0f,turnByDeg) ;
     }
 }

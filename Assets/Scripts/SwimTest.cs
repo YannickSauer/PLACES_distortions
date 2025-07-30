@@ -51,10 +51,22 @@ public class SwimTest : MonoBehaviour
     public AudioClip metronomeClip;
     private float lastBeatNum = 0;
     private GameObject trainingsObj;
+    private GameObject directionArrow;
     private AudioSource metronomeMusic;
     private AudioSource beepSource;
 
     public event Action<string> OnNextTrainingStep;
+    public static event Action OnTurnHead;
+
+    void OnEnable()
+    {
+        OnTurnHead += PlayBeep;
+    }
+
+    void OnDisable()
+    {
+        OnTurnHead -= PlayBeep;
+    }
 
     void Start()
     {
@@ -72,6 +84,9 @@ public class SwimTest : MonoBehaviour
 
         scene = GameObject.Find("Scene");
         scene.SetActive(false);
+
+        directionArrow = GameObject.Find("ArrowSprite");
+        directionArrow.SetActive(false);
 
         // adjust the scene scale for distortions, i.e. all objects are inversely scaled by the magnification factor. This works only if the camera is at the origin.
         initTargetScale = scene.transform.localScale.x; // assuming all scale components are the same
@@ -110,39 +125,6 @@ public class SwimTest : MonoBehaviour
         // adjust the scene scale for distortions, i.e. all objects are inversely scaled by the magnification factor. This works only if the camera is at the origin.
         scene.transform.localScale = initTargetScale / dotManager.distortionParam.x * new Vector3(1f, 1f, 1f);
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-     
-    }
-
-    // public IEnumerator Metronome()
-    // {
-    //     // set waitTime according to metronome frequency
-    //     float beatInterval = 60f/bpm;
-    //     Debug.Log("Wait time: " + beatInterval);
-    //     // set metronome audio to start at first beat
-    //     metronomeSong.time = firstBeat;
-    //     Debug.Log("Start song: "+metronomeSong.time+ " "+ firstBeat);
-    //     lastBeatTime = firstBeat;
-    //     nextBeatTime = lastBeatTime + beatInterval;
-    //     metronomeSong.Play();
-
-    //     while (true)
-    //     {
-    //         // predict next beat
-    //         nextBeatTime = lastBeatTime + beatInterval;
-    //         Debug.Log("Last Beat: " + lastBeatTime + ", Next Beat: " + nextBeatTime);
-    //         // wait for next beat
-    //         Debug.Log("Time before wait: " + Time.time);
-    //         yield return new WaitForSecondsRealtime(beatInterval);
-    //         Debug.Log("Time after wait: " + Time.time);
-    //         // record time of beat
-    //         lastBeatTime = metronomeSong.time;
-
-    //     }
-    // }
 
     public bool CheckOnBeat()
     {
@@ -195,16 +177,26 @@ public class SwimTest : MonoBehaviour
                 case 0: // Practice head movement
                     yield return new WaitUntil(() => touchpadPressed);
                     OnNextTrainingStep?.Invoke("hide");
+
+                    directionArrow.SetActive(true);
+                    directionArrow.transform.position = new Vector3(0f, Camera.main.transform.position.y, 1.97f);
+
                     yield return StartCoroutine(HeadMovement());
+
+                    directionArrow.SetActive(false);
                     break;
+
                 case 1: // Practice head movement with metronome
                     yield return new WaitUntil(() => touchpadPressed);
                     OnNextTrainingStep?.Invoke("hide");
+
                     yield return StartCoroutine(RhythmicHeadMovement());
                     break;
+
                 case 2: // Practice full swim test 
                     yield return new WaitUntil(() => touchpadPressed);
                     OnNextTrainingStep?.Invoke("hide");
+
                     yield return StartCoroutine(RunTest(3)); // run 3 trials of the swim test
                     break;
 
@@ -213,7 +205,6 @@ public class SwimTest : MonoBehaviour
         }
         Debug.Log("Headmovement training completed.");
 
-        // StopCoroutine(metronomeCoroutine);
         if (eyeTracker != null)
         {
             eyeTracker.StopRecording();
@@ -222,34 +213,38 @@ public class SwimTest : MonoBehaviour
 
     private IEnumerator HeadMovement()
     {
+        // save initial rotation and position of the camera
+        initialRotation = Camera.main.transform.rotation;
+        initialPosition = Camera.main.transform.position;
+
         // wait for full head rotation left or right
         yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
-        PlayBeep();
+        OnTurnHead?.Invoke();
 
         if (GetYawRotation() > 0f) // initial rotation is to the right
         {
             // wait for head to rotate left
             yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
-            PlayBeep();
+            OnTurnHead?.Invoke();
             // wait for head to rotate right
             yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
-            PlayBeep();
+            OnTurnHead?.Invoke();
             // wait for head to rotate left
             yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
-            PlayBeep();
+            OnTurnHead?.Invoke();
 
         }
         else // if the head is rotated to the left
         {
             // wait for head to rotate right
             yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
-            PlayBeep();
+            OnTurnHead?.Invoke();
             // wait for head to rotate left
             yield return new WaitUntil(() => GetYawRotation() < -headRotationThreshold);
-            PlayBeep();
+            OnTurnHead?.Invoke();
             // wait for head to rotate right
             yield return new WaitUntil(() => GetYawRotation() > headRotationThreshold);
-            PlayBeep();
+            OnTurnHead?.Invoke();
         }
 
         // Wait for head to return to center
@@ -266,12 +261,16 @@ public class SwimTest : MonoBehaviour
         metronomeMusic = trainingsObj.GetComponent<AudioSource>();
         metronomeMusic.clip = metronomeClip;
 
-        TMP_Text goodTrialText = GameObject.Find("Text").GetComponent<TMP_Text>();
+        GameObject goodTrialTextObj = GameObject.Find("Text");
+        TMP_Text goodTrialText = goodTrialTextObj.GetComponent<TMP_Text>();
         int goodTrial = 0;
+        goodTrialText.text = goodTrial.ToString();
 
         Debug.Log("Starting headmovement training.");
         //eyeTracker.StartRecording(fileName);
         //TODO: fill the trial variables   
+
+        goodTrialTextObj.transform.position = new Vector3(goodTrialTextObj.transform.position.x, Camera.main.transform.position.y, goodTrialTextObj.transform.position.z);
 
         // wait for the participant to rotate towards the test direction
         while (Vector3.Angle(Camera.main.transform.forward, Vector3.forward) > 10f)
@@ -279,14 +278,12 @@ public class SwimTest : MonoBehaviour
             yield return null;
         }
 
-        trainingsObj.transform.position = new Vector3(trainingsObj.transform.position.x, Camera.main.transform.position.y, trainingsObj.transform.position.z);
-
-        // wait for ISI before starting the test
-        yield return new WaitForSeconds(startWaitTime);
-
         // loop trough all target positions
         initialRotation = Camera.main.transform.rotation;
         initialPosition = Camera.main.transform.position;
+        
+        // wait for ISI before starting the test
+        yield return new WaitForSeconds(startWaitTime);
 
         goodTrialText.text = goodTrial.ToString();
         scene.SetActive(true);
@@ -322,10 +319,11 @@ public class SwimTest : MonoBehaviour
             }
             PlayBeep(0.7f); // low pitch metronom sound
 
-            goodTrial = CheckOnBeat() ? goodTrial+1 : 0;
+            goodTrial = CheckOnBeat() ? goodTrial + 1 : 0;
             goodTrialText.text = goodTrial.ToString();
+            
         }
-
+        goodTrialText.text = "";
         metronomeMusic.Stop();
     }
 
@@ -336,8 +334,7 @@ public class SwimTest : MonoBehaviour
             nTrialsBlock = aftereffectData.nTrials;
         }
         // set training GameObject to inactive
-        var trainingGameObj = GameObject.Find("Training");
-        trainingGameObj.SetActive(false);
+        trainingsObj.SetActive(false);
 
         Debug.Log("Starting aftereffect test.");
         // wait for startWaitTime
@@ -352,10 +349,6 @@ public class SwimTest : MonoBehaviour
         for (int trial = 0; trial < nTrialsBlock; trial++)
         {
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // eary stop if less trials left than given by nTrialsBlock
-
-            initialRotation = Camera.main.transform.rotation;
-            initialPosition = Camera.main.transform.position;
-
 
             // set the trial distortion
             magnification = aftereffectData.magnificationTrial[aftereffectData.currentTrial];
@@ -438,19 +431,24 @@ public class SwimTest : MonoBehaviour
     }
 
 
+    void PlayBeep()
+    {
+        beepSource.pitch = 1f;
+        beepSource.PlayOneShot(beepClip);
+    }
+
     void PlayBeep(float pitch = 1f)
     {
         beepSource.pitch = pitch;
         beepSource.PlayOneShot(beepClip);
-        Debug.Log("Beep triggered at DSP time: " + AudioSettings.dspTime);
     }
 
     public void Flash(Color color, float duration = 0.2f)
     {
         // Adjust orientation of flash canvas
         GameObject flashObj = flashImage.transform.parent.gameObject;
-        flashObj.transform.rotation = Quaternion.Euler(0, Camera.main.transform.rotation.eulerAngles.y, 0);
-
+        flashObj.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 1f;
+        flashObj.transform.LookAt(Camera.main.transform.position, Camera.main.transform.up);
         // Start flashing
         if (flashCoroutine != null)
         {

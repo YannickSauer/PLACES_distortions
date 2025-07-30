@@ -37,7 +37,6 @@ public class AdaptationTask : MonoBehaviour
     [HideInInspector] public bool inRound = false; // flag to check if we are in a round
 
     [Header("Spawn Settings")]
-    public bool shouldRespawn = true;
     public float spawnDelay = 2f; // delay between destruction of balloon and spawning a new one
     private float timer = 0f; // timer for the current run
     public Vector3 spawnAreaLowerBounds;
@@ -108,7 +107,7 @@ public class AdaptationTask : MonoBehaviour
                     break;
 
                 case 2: // Destroy a green balloon
-                    yield return new WaitForSeconds(5);
+                    yield return new WaitForSeconds(6);
                     // Determine position and spawn the balloon
                     spawnPos = Camera.main.transform.position + new Vector3(-1.0f, 0, 1.5f);
                     SpawnForTutorial(0, spawnPos);
@@ -136,7 +135,7 @@ public class AdaptationTask : MonoBehaviour
                     break;
 
                 case 5: // Recenter head
-                    yield return new WaitForSeconds(5);
+                    yield return new WaitForSeconds(7);
                     yield return this.GetComponent<RecenterHead>().RunRecenter();
                     break;
             }
@@ -162,7 +161,6 @@ public class AdaptationTask : MonoBehaviour
             }
         }
         balloons.Clear();
-        shouldRespawn = true;
         SpawnAllBalloons();
         // wait for the round to finish
         yield return new WaitForSeconds(roundTime);
@@ -212,7 +210,11 @@ public class AdaptationTask : MonoBehaviour
     private IEnumerator SpawnBalloon(float delay, int groupId, int balloonId, Vector3 pos)
     {
         // wait for the delay before spawning the balloon
-        yield return new WaitForSeconds(delay);
+        if (delay > 0)
+        {
+            yield return new WaitForSeconds(delay);
+        }
+        
         // if (!inRound)
         // {
         //     yield break; // if not in round, do not spawn the balloon
@@ -277,7 +279,7 @@ public class AdaptationTask : MonoBehaviour
         // start score animation
 
         // spawn a new balloon in the same group
-        if (shouldRespawn)
+        if (inRound)
         {
             float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
             Vector3 newPos = FindNewPosition(b.transform.position);
@@ -322,7 +324,7 @@ public class AdaptationTask : MonoBehaviour
         SpawnPoints(b.transform.position, points);
         Debug.Log("Balloon popped! Score: " + score);
         // spawn a new balloon in the same group
-        if (shouldRespawn)
+        if (inRound)
         {
             float delay = Random.Range(0f, 1f) + spawnDelay; // random delay for each balloon
             Vector3 newPos = FindNewPosition(b.transform.position);
@@ -375,7 +377,6 @@ public class AdaptationTask : MonoBehaviour
     public void SpawnForTutorial(int groupId, Vector3 pos)
     {
         Debug.Log("Spawn for tutorial.");
-        shouldRespawn = false;
         StartCoroutine(SpawnBalloon(0.0f, groupId, 0, pos));
     }
 

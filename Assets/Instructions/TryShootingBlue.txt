@@ -1,3 +1,4 @@
-If you shoot a blue balloon you will get a penalty. 
+Shooting a blue balloon gives you a penalty.
 
-Try to shoot the blue balloon.
+
+<b>Now, try shooting the blue balloon.</b>

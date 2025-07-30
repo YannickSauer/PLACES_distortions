@@ -1,10 +1,11 @@
-Now you know how everything works and we can start a test round. 
+Now that you know how it works, let's start a test round.
+You’ll have <b>45 seconds</b> to shoot as many balloons as you can.
+Balloons will appear <b>all around you (360°)</b>.
 
-You will have 20 seconds to shoot as many balloons as possible. 
-The balloons will spawn 360° around you. 
-If you hit the green balloons early you get +3, otherwise +1. 
-If you hit the blue balloons you get -5. 
+- <b>Green balloon (early hit): +3</b>  
+- <b>Green balloon (late hit): +1</b>  
+- <b>Blue balloon: -5</b>
 
-Try to collect as many points as possible. 
+Try to score as many points as possible!
 
-Press Trackpad to start the test round. 
+<b>Press the trackpad to begin.</b>

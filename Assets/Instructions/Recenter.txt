@@ -1,6 +1,6 @@
-Sometimes we need to recenter our head position before we can continue.
+Sometimes we need to recenter our head position before continuing.
 
-For this you will see two crosshairs. 
+You’ll see two crosshairs.  
 Turn your head to make them overlap.
 
-When they are fully aligned they will disappear and the experiment continues.  
+Once they're fully aligned, they will disappear and the experiment will continue.
