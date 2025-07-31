@@ -26,7 +26,7 @@ public class ExperimentManager : MonoBehaviour
         public bool inAdaptationPhase;
         public float score; // current score of the adaptation phase
         public bool distorted; // in which experiment phase are we: distorted already or not
-    }    
+    }
     [System.Serializable]
     public class AftereffectSettings // subcategory of settings for the aftereffect phase
     {
@@ -36,7 +36,7 @@ public class ExperimentManager : MonoBehaviour
         public int topupFrequency; // after how many trials to repeat the adaptation phase
         public string sceneName; // RanDot
     }
-    
+
     public class AftereffectData // stores trial-by-trial data for the aftereffect phase
     {
         public int currentTrial; // current trial number
@@ -44,20 +44,49 @@ public class ExperimentManager : MonoBehaviour
         public float[] magnificationTrial; // 
         public float[] radialTrial;
         public int[] answerTrial;
+
+        // Default constructor
+        public AftereffectData()
+        {
+            currentTrial = 0;
+            nTrials = 0;
+            magnificationTrial = new float[0];
+            radialTrial = new float[0];
+            answerTrial = new int[0];
+        }
+
+        // Constructor with settings
+        public AftereffectData(AftereffectSettings settings)
+        {
+            currentTrial = 0;
+            magnificationTrial = ExperimentPreparation.FillWithSamples(
+                settings.magnificationStimulusLevels,
+                settings.samplingFrequency * settings.radialStimulisLevels.Length, 1);
+            radialTrial = ExperimentPreparation.FillWithSamples(
+                settings.radialStimulisLevels,
+                settings.samplingFrequency * settings.magnificationStimulusLevels.Length, 1);
+            ExperimentPreparation.RandPermute(magnificationTrial);
+            ExperimentPreparation.RandPermute(radialTrial);
+            nTrials = magnificationTrial.Length;
+            answerTrial = new int[nTrials];
+        }
     }
-    
+
     [Header("Experiment Settings")]
     public AdaptationPhaseSettings adaptationPhaseSettings;
     public AftereffectSettings aftereffectSettings;
-    
+
     [Header("Live Data (Debugging)")]
 
     public AdaptationPhaseData adaptationPhaseData;
 
-    public AftereffectData aftereffectData ; // stores trial-by-trial data for the aftereffect phase
+    public AftereffectData aftereffectData; // stores trial-by-trial data for the aftereffect phase
 
     public string outputDirectory = "./measurements/subjectID/";
+    public string startExpTextPath = "./Instructions/StartExperiment.txt";
+    public string adaptTextPath = "./Instructions/AdaptationPhase.txt";
     private bool isRunning = false;
+    private bool buttonPressed = false; 
     private Distortions distortions;
     private EyeTrackingToolbox eyeTracker;
 
@@ -92,7 +121,7 @@ public class ExperimentManager : MonoBehaviour
         }
 
         // fill the trial variables
-        aftereffectData = GetAftereffectData();
+        aftereffectData = new AftereffectData(aftereffectSettings);
 
         // set random dots to inactive
         Camera.main.GetComponent<DotManager>().active = false;
@@ -107,24 +136,7 @@ public class ExperimentManager : MonoBehaviour
         {
             eyeTracker.SetOutputFolder(outputDirectory);
         }
-        
-    }
 
-    private AftereffectData GetAftereffectData()
-    {
-        aftereffectData = new AftereffectData();
-        aftereffectData.currentTrial = 0;
-        float[] magnificationTrial = ExperimentPreparation.FillWithSamples(aftereffectSettings.magnificationStimulusLevels,
-                                                                           aftereffectSettings.samplingFrequency * aftereffectSettings.radialStimulisLevels.Length, 1);
-        float[] radialTrial = ExperimentPreparation.FillWithSamples(aftereffectSettings.radialStimulisLevels, aftereffectSettings.samplingFrequency * aftereffectSettings.magnificationStimulusLevels.Length, 1);
-        // randomly permute the trials
-        ExperimentPreparation.RandPermute(magnificationTrial);
-        ExperimentPreparation.RandPermute(radialTrial);
-        aftereffectData.magnificationTrial = magnificationTrial;
-        aftereffectData.radialTrial = radialTrial;
-        aftereffectData.nTrials = magnificationTrial.Length;
-        aftereffectData.answerTrial = new int[aftereffectData.nTrials];
-        return aftereffectData;
     }
 
     private void Update()
@@ -145,7 +157,7 @@ public class ExperimentManager : MonoBehaviour
         isRunning = true;
 
         // Start balloon game training
-        // yield return StartCoroutine(BalloonGameTraining());
+        yield return StartCoroutine(BalloonGameTraining());
 
         // Start head movement training
         yield return StartCoroutine(HeadMovementTraining());
@@ -194,7 +206,12 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log("Starting experiment...");
         isRunning = true;
 
-
+        string startExpTextFullPath = Path.Combine(Application.dataPath, startExpTextPath);
+        string startExperimentText = DisplayInformation.ReadText(startExpTextFullPath);
+        DisplayInformation.UpdateInstructionText(startExperimentText);
+        buttonPressed = false;
+        yield return new WaitUntil(() => buttonPressed);
+        DisplayInformation.UpdateInstructionText("hide");
         ////////////////////
         // Baseline phase///
         ////////////////////
@@ -229,6 +246,13 @@ public class ExperimentManager : MonoBehaviour
         //////////////////////
         // Adaptation phase //
         //////////////////////
+        
+        string adaptTextFullPath = Path.Combine(Application.dataPath, adaptTextPath);
+        string adaptationText = DisplayInformation.ReadText(adaptTextFullPath);
+        DisplayInformation.UpdateInstructionText(adaptationText);
+        buttonPressed = false;
+        yield return new WaitUntil(() => buttonPressed);
+        DisplayInformation.UpdateInstructionText("hide");
 
         // turn distortions on
         adaptationPhaseData.inAdaptationPhase = true;
@@ -244,7 +268,7 @@ public class ExperimentManager : MonoBehaviour
         ///////////////////////
 
         // create new trial parameters
-        aftereffectData = GetAftereffectData();
+        aftereffectData = new AftereffectData(aftereffectSettings);
 
         eyeTracker?.StartRecording("aftereffect");
         roundCounter = 0;
@@ -319,7 +343,7 @@ public class ExperimentManager : MonoBehaviour
             {
                 testManager.canPlayAgain = false;
                 testManager.totalRounds = Mathf.FloorToInt(aftereffectData.nTrials / aftereffectSettings.topupFrequency);
-                Debug.Log(aftereffectData.nTrials + " /"+ aftereffectSettings.topupFrequency+ " = "+ testManager.totalRounds);
+                Debug.Log(aftereffectData.nTrials + " /" + aftereffectSettings.topupFrequency + " = " + testManager.totalRounds);
                 testManager.roundTime = adaptationDuration;
             }
         }
@@ -330,7 +354,7 @@ public class ExperimentManager : MonoBehaviour
     private IEnumerator VORTestPhase(int nTrials, bool invisibleTarget)
     {
         yield return StartCoroutine(SwitchScene(aftereffectSettings.sceneName)); // TODO, this is a new scene
-       
+
         // TODO: add distortions here, if needed
 
         // Find the GameObject that contains the script responsible for the coroutine
@@ -350,7 +374,7 @@ public class ExperimentManager : MonoBehaviour
             yield break;
         }
 
-        // Start the test coroutine and wait for it to finish
+        // Start the test coroutine and yield return it to wait for it to finish
         yield return StartCoroutine(testManager.RunTest(nTrials, invisibleTarget));
     }
 
@@ -360,7 +384,7 @@ public class ExperimentManager : MonoBehaviour
 
         // set distortions off, always, because we use the random dot simulation
         distortions.active = false;
-       
+
         // Find the GameObject that contains the script responsible for the coroutine
         GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
 
@@ -395,6 +419,8 @@ public class ExperimentManager : MonoBehaviour
         // Wait until the scene is fully loaded before proceeding
         yield return new WaitUntil(() => SceneManager.GetActiveScene().name == sceneName);
     }
-
-
+    private void OnTouchpad() // called by the touchpad of the controller
+    {
+        buttonPressed = true;
+    }
 }

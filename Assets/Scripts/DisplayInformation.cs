@@ -10,7 +10,7 @@ public class DisplayInformation : MonoBehaviour
     private TMP_Text scoreText;
     private TMP_Text timerText;
     private TMP_Text highScoreText;
-    private TMP_Text instructionText;
+    private static TMP_Text instructionText;
     private AdaptationTask adaptationTask;
     private SwimTest swimTest;
 
@@ -114,7 +114,7 @@ public class DisplayInformation : MonoBehaviour
         return text;
     }
 
-    public void UpdateInstructionText(string newText)
+    public static void UpdateInstructionText(string newText)
     {
         Debug.Log(newText);
         if (instructionText != null)
@@ -150,5 +150,16 @@ public class DisplayInformation : MonoBehaviour
             }
         }
 
+    }
+
+    public static string ReadText(string path)
+    {
+        if (!File.Exists(path))
+        {
+            Debug.LogError("No Textfile found.");
+            return null;
+        }
+        string readText = File.ReadAllText(path);
+        return readText;
     }
 }

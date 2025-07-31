@@ -91,7 +91,7 @@ public class AdaptationTask : MonoBehaviour
             Debug.Log(pathToText);
 
             // TODO Put readtext to utils ?
-            string nextInstructionText = ReadText(pathToText);
+            string nextInstructionText = DisplayInformation.ReadText(pathToText);
             Debug.Log(nextInstructionText);
             OnNextTrainingStep?.Invoke(nextInstructionText);
 
@@ -131,7 +131,6 @@ public class AdaptationTask : MonoBehaviour
                     // hide instruction and background
                     OnNextTrainingStep?.Invoke("hide");
                     yield return StartCoroutine(StartRound());
-
                     break;
 
                 case 5: // Recenter head
@@ -427,14 +426,5 @@ public class AdaptationTask : MonoBehaviour
         // 6. Add a countdown timer for the game
     }
     
-    public string ReadText(string path)
-    {
-        if (!File.Exists(path))
-        {
-            Debug.LogError("No Textfile found.");
-            return null;
-        }
-        string readText = File.ReadAllText(path);
-        return readText;
-    }
+
 }

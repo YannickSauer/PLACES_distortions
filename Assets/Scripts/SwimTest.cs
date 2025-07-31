@@ -9,22 +9,16 @@ using System;
 
 public class SwimTest : MonoBehaviour
 {
+
+    [Header("Test settings")]
     public float startWaitTime = 0.1f; // inter-stimulus interval
-    public string outputFolder; // should be set by ExperimentManager
-    public float targetDistance = 10f;
-    public bool invisibleTarget = false;
     public float headRotationThreshold = 10f;
     public float timingThreshold = 0.3f; // timing offset allowed for the participant
     public float centerThreshold = 2f;
-
     private ExperimentManager.AftereffectData aftereffectData;
-    public float[] magnificationTrial;
-    public float[] radialTrial;
-    public float magnification;
-    public float radial;
-    private float[] targetHeightPerTrial;
+    private float magnification;
+    private float radial;
     private Quaternion initialRotation; // save initial rotation of the camera for each trial
-    private Vector3 initialPosition;
     private EyeTrackingToolbox eyeTracker;
     private ExperimentManager expManager;
     private DotManager dotManager;
@@ -35,25 +29,29 @@ public class SwimTest : MonoBehaviour
     private bool touchpadPressed = false;
     private string filePath;
     
-
+    [Header("UI settings")]
     public Image flashImage;
     public Color colorRight = new Color(1f, 0f, 1f, 0.2f); // Magenta with 20% opacity
     public Color colorLeft = new Color(0f, 1f, 1f, 0.2f); // Cyan with 20% opacity
     public float flashDuration = 0.2f;
     private Coroutine flashCoroutine;
 
-
     [Header("Training settings")]
+    public ExperimentManager.AftereffectSettings trainingSettings;
     public List<string> pathList;
     public float bpm; // frequency of the metronome in bpm
     public float firstBeat;
     public AudioClip beepClip;
     public AudioClip metronomeClip;
+    public AudioClip correctClip;
+    public AudioClip wrongClip;
     private float lastBeatNum = 0;
     private GameObject trainingsObj;
     private GameObject directionArrow;
     private AudioSource metronomeMusic;
     private AudioSource beepSource;
+    private ExperimentManager.AftereffectData trainingData;
+    private bool isTraining; // flag to indicate if the training phase is active
 
     public event Action<string> OnNextTrainingStep;
     public static event Action OnTurnHead;
@@ -116,7 +114,6 @@ public class SwimTest : MonoBehaviour
             StartCoroutine(RunTest());
         }
         aftereffectData = ExperimentManager.Instance.aftereffectData; // get the aftereffect data from the experiment manager
-        
 
     }
 
@@ -159,8 +156,10 @@ public class SwimTest : MonoBehaviour
     // the training is completed when the participant has 10 good trials in a row
     public IEnumerator RunTraining()
     {
+        isTraining = true; // set training flag to true
         // Prepare Training
         trainingsObj = GameObject.Find("Training");
+        trainingData = new ExperimentManager.AftereffectData(trainingSettings);
 
         for (int step = 0; step < pathList.Count; step++)
         {
@@ -168,7 +167,7 @@ public class SwimTest : MonoBehaviour
             Debug.Log(pathToText);
 
             // TODO Put readtext to utils ?
-            string nextInstructionText = ReadText(pathToText);
+            string nextInstructionText = DisplayInformation.ReadText(pathToText);
             Debug.Log(nextInstructionText);
             OnNextTrainingStep?.Invoke(nextInstructionText);
 
@@ -186,7 +185,7 @@ public class SwimTest : MonoBehaviour
                     directionArrow.SetActive(false);
                     break;
 
-                case 1: // Practice head movement with metronome
+                case 1: // Practice head movement with background music
                     yield return new WaitUntil(() => touchpadPressed);
                     OnNextTrainingStep?.Invoke("hide");
 
@@ -197,7 +196,9 @@ public class SwimTest : MonoBehaviour
                     yield return new WaitUntil(() => touchpadPressed);
                     OnNextTrainingStep?.Invoke("hide");
 
-                    yield return StartCoroutine(RunTest(3)); // run 3 trials of the swim test
+                    aftereffectData = trainingData; // use the training data for the swim test, with next start it will switch to the test data
+                    yield return StartCoroutine(RunTest(8)); // run 3 trials of the swim test
+
                     break;
 
             }
@@ -209,13 +210,13 @@ public class SwimTest : MonoBehaviour
         {
             eyeTracker.StopRecording();
         }
+        isTraining = false; // set training flag to false
     }
 
     private IEnumerator HeadMovement()
     {
         // save initial rotation and position of the camera
         initialRotation = Camera.main.transform.rotation;
-        initialPosition = Camera.main.transform.position;
 
         // wait for full head rotation left or right
         yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
@@ -249,10 +250,7 @@ public class SwimTest : MonoBehaviour
 
         // Wait for head to return to center
         yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) < centerThreshold);
-        if (eyeTracker != null)
-        {
-            eyeTracker.WriteMessage("StopTestTrial" + aftereffectData.currentTrial);
-        }
+        // Play a beep sound to indicate the end of the head movement
         PlayBeep(0.8f);
     }
 
@@ -280,7 +278,6 @@ public class SwimTest : MonoBehaviour
 
         // loop trough all target positions
         initialRotation = Camera.main.transform.rotation;
-        initialPosition = Camera.main.transform.position;
         
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
@@ -333,8 +330,6 @@ public class SwimTest : MonoBehaviour
         {
             nTrialsBlock = aftereffectData.nTrials;
         }
-        // set training GameObject to inactive
-        trainingsObj.SetActive(false);
 
         Debug.Log("Starting aftereffect test.");
         // wait for startWaitTime
@@ -345,6 +340,7 @@ public class SwimTest : MonoBehaviour
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
 
+        int ans = 0;
         // loop trough all target positions
         for (int trial = 0; trial < nTrialsBlock; trial++)
         {
@@ -378,6 +374,11 @@ public class SwimTest : MonoBehaviour
             // wait for 5 head rotations
             yield return StartCoroutine(HeadMovement());
 
+            if (eyeTracker != null)
+            {
+                eyeTracker.WriteMessage("StopTestTrial" + aftereffectData.currentTrial);
+            }
+
             // remove the random dots
             dotManager.active = false;
 
@@ -394,23 +395,32 @@ public class SwimTest : MonoBehaviour
             // you can check which key was pressed or OnFire was called
             if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed)
             {
-                SaveTrial(1);
+                ans = 0; // unnatural perception
                 Flash(colorLeft, flashDuration);
             }
             else if (Input.GetKeyDown(KeyCode.RightArrow) || fireRightPressed)
             {
-                SaveTrial(0);
+                ans = 1; // natural perception
                 Flash(colorRight, flashDuration);
             }
             else
             {
-                SaveTrial(2);
+                ans = 2; // no answer given
             }
-            PlayBeep(0.4f); // feedback beep
-            aftereffectData.currentTrial++;
-            //GetComponent<Renderer>().material.color = Color.green;
-            yield return new WaitForSeconds(startWaitTime);
+            SaveTrial(ans);
 
+            // give feedback to the participant
+            if (isTraining)
+            {
+                yield return StartCoroutine(PlayAudioFeedback(ans, magnification));
+            }
+            else
+            {
+                PlayBeep(0.4f);
+                yield return new WaitForSeconds(startWaitTime);
+            }
+
+            aftereffectData.currentTrial++;
         }
         Debug.Log("Aftereffect test completed.");
         if (eyeTracker != null)
@@ -485,19 +495,27 @@ public class SwimTest : MonoBehaviour
             flashImage.color = color;
             yield return null;
         }
-        
+
         flashImage.color = new Color(color.r, color.g, color.b, 0f); // Transparent
     }
 
-    public string ReadText(string path)
+    IEnumerator PlayAudioFeedback(int ans, float magnification)
     {
-        if (!File.Exists(path))
+        AudioClip clip = null;
+        if (ans == 1 && magnification == 1f || ans == 0 && magnification != 1f)
+            clip = correctClip;
+        else
+            clip = wrongClip;
+
+        if (clip != null)
         {
-            Debug.LogError("No Textfile found.");
-            return null;
+            beepSource.PlayOneShot(clip);
+            yield return new WaitWhile(() => beepSource.isPlaying);
         }
-        string readText = File.ReadAllText(path);
-        return readText;
+        else
+        {
+            yield return null;
+        }
     }
 
     // return horizontal rotation of the camera relative to the starting position
