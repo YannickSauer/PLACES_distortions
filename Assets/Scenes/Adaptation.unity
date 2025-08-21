@@ -1256,6 +1256,7 @@ GameObject:
   m_Component:
   - component: {fileID: 758664810}
   - component: {fileID: 758664811}
+  - component: {fileID: 758664812}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -1334,6 +1335,18 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &758664812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 758664809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94b29f9ff0d2fdd4d90b21c2f126f46f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &761549792
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2775,6 +2788,10 @@ PrefabInstance:
       value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: adaptationPhaseData.distorted
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.sceneName
       value: RanDot
       objectReference: {fileID: 0}
@@ -2787,6 +2804,10 @@ PrefabInstance:
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: adaptationPhaseData.inAdaptationPhase
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.topUpDuration
       value: 20
       objectReference: {fileID: 0}
@@ -2796,7 +2817,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.adaptationDuration
-      value: 90
+      value: 900
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.preBaselineDuration
@@ -2808,11 +2829,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.size
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[0]
-      value: 0.9
+      value: 0.85
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[1]
@@ -5798,7 +5819,7 @@ SceneRoots:
   - {fileID: 1219215545}
   - {fileID: 1448564814}
   - {fileID: 1134172570}
-  - {fileID: 1376057620}
   - {fileID: 872012321}
   - {fileID: 835161647}
   - {fileID: 1374561715}
+  - {fileID: 1376057620}
