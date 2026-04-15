@@ -1,0 +1,9 @@
+Great!
+
+You should now see a blue laser pistol in your right hand.
+Move it around to see a red laser pointer showing where you're aiming.
+Pull the trigger to shoot.
+
+<b>Try to shoot the green balloon.</b> 
+
+

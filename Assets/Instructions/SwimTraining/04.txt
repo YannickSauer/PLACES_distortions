@@ -1,0 +1,6 @@
+Did the wall appear to move (appear unstable)?
+Press left to see the stable movement again.
+Press right to see the unstable movement again.
+
+
+Press Space to continue.

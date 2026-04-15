@@ -25,8 +25,8 @@ public struct GazeData
     public float rightEyeOpenness; // right eye openness (0-1)
 
 
-    public int leftValidity; // TODO, define what and how to use this
-    public int rightValidity;
+    public bool leftValidity; // TODO, define what and how to use this
+    public bool rightValidity;
 }
 
 public interface IEyeTracker

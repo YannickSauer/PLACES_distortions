@@ -6,7 +6,7 @@
             "id": "99a39a56-4751-4457-a9c6-3a823d2a8741",
             "actions": [
                 {
-                    "name": "Fire",
+                    "name": "FireRight",
                     "type": "Button",
                     "id": "c9e78341-6269-468b-8db3-548a5751e94f",
                     "expectedControlType": "",
@@ -22,6 +22,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "FireLeft",
+                    "type": "Button",
+                    "id": "38ab8557-0735-4fca-821d-0e4607cbb1ac",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -32,7 +41,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Fire",
+                    "action": "FireRight",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -44,6 +53,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Touchpad",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2a7bd862-fe15-4a4f-9ae1-81dfc5eb7507",
+                    "path": "<ViveController>{LeftHand}/triggerPressed",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "FireLeft",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

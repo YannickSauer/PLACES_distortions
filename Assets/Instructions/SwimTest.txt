@@ -1,0 +1,15 @@
+Fantastic!
+
+In the movement assessment tests, you'll judge if your environment moves naturally/stable or unnaturally/unstable.
+For this task we will show you a <b>random dot pattern</b>. These dots are <b>representing a wall</b> in front of you. This means that the dots are projected onto this wall. The wall itself will not be visible.  
+
+Keep your eyes on the red fixation dot and shake your head as you learned before.  
+After turning your head twice to each side and returning to center, the dots will disappear. 
+
+Then, decide if the dots moved <color=#FF00FF>naturally/stable</color> or <color=#00FFFF>unnaturally/unstable</color>.
+
+If you think the dots moved <color=#FF00FF>naturally/stable</color>, you pull the <color=#FF00FF>right</color> hand trigger.
+If you think the dots moved <color=#00FFFF>unnaturally/unstable</color>, you pull the <color=#00FFFF>left</color> hand trigger.
+
+<b>Press the trackpad to start.</b>
+

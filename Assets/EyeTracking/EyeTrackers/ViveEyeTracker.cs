@@ -101,11 +101,10 @@ public class ViveEyeTracker : IEyeTracker
         gazeData.deviceTimestamp = eyeData.timestamp;
         
         // validity
-        eyeData.verbose_data.left.GetValidity(SingleEyeDataValidity.SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY);
-        eyeData.verbose_data.right.GetValidity(SingleEyeDataValidity.SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY);
+        gazeData.leftValidity = eyeData.verbose_data.left.GetValidity(SingleEyeDataValidity.SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY);
+        gazeData.rightValidity = eyeData.verbose_data.right.GetValidity(SingleEyeDataValidity.SINGLE_EYE_DATA_EYE_OPENNESS_VALIDITY);
 
         // left eye
-        gazeData.leftValidity = 1;// TODO eyeData.verbose_data.left.eye_data_validata_bit_mask; // datatype ulong
         Vector3 origin = 0.001f * eyeData.verbose_data.left.gaze_origin_mm; // convert from mm to m
         origin.x = -origin.x; // mirror x-axis
         Vector3 direction = eyeData.verbose_data.left.gaze_direction_normalized;
@@ -116,7 +115,6 @@ public class ViveEyeTracker : IEyeTracker
         //gazeData.leftPupilPosition = eyeData.verbose_data.left.pupil_position_in_sensor_area;
 
         // right eye
-        gazeData.rightValidity = 1;// TODO eyeData.verbose_data.right.eye_data_validata_bit_mask;
         origin = 0.001f * eyeData.verbose_data.right.gaze_origin_mm;
         origin.x = -origin.x;
         direction = eyeData.verbose_data.right.gaze_direction_normalized;

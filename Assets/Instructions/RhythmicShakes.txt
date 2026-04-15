@@ -1,0 +1,13 @@
+Good job!
+
+Our goal is for you to swing your head at a <b>steady speed</b>.
+
+To get a feel for the speed, turn your head to the rhythm of the background music.  
+You’ll still get a beep each time you turn far enough.
+
+Match this beep with the music's beat to increase the counter.
+If you miss a beat, the counter <b>resets to 0.</b>  
+
+Your goal is to match the beep with the song’s beat and reach <b>10 turns in a row.</b>
+
+<b>Press the trackpad to start.</b>

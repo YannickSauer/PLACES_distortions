@@ -1,0 +1,6 @@
+Your task is to find trials with stable movement.
+Let's do some example trials.
+After the usual head movements, press left if it appeared unstable or right if it appeared stable
+
+
+Press space to start the test.

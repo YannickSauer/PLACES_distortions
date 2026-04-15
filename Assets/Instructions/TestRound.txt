@@ -1,0 +1,11 @@
+Now that you know how it works, let's start a test round.
+You’ll have <b>45 seconds</b> to shoot as many balloons as you can.
+Balloons will appear <b>all around you (360°)</b>.
+
+- <b>Green balloon (early hit): +3</b>  
+- <b>Green balloon (late hit): +1</b>  
+- <b>Blue balloon: -5</b>
+
+Try to score as many points as possible!
+
+<b>Press the trackpad to begin.</b>

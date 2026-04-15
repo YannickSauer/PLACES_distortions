@@ -149,13 +149,13 @@ public class DummyEyeTracker : MonoBehaviour, IEyeTracker
         simulatedGazeData.leftRayLocal = leftGazeRay;
         simulatedGazeData.rightRayLocal = rightGazeRay;
         simulatedGazeData.combinedRayLocal = combinedGazeRay;
-        simulatedGazeData.gazeDistance = 1000.0f;
+        simulatedGazeData.gazeDistance = Vector3.Distance(hit.point, cam.transform.position);
         simulatedGazeData.leftPupilDiameter = 4.0f;
         simulatedGazeData.rightPupilDiameter = 4.0f;
         simulatedGazeData.leftEyeOpenness = 1.0f;
         simulatedGazeData.rightEyeOpenness = 1.0f;
-        simulatedGazeData.leftValidity = 1;
-        simulatedGazeData.rightValidity = 1;
+        simulatedGazeData.leftValidity = true;
+        simulatedGazeData.rightValidity = true;
 
         // add gaussian noise to the gaze data
         //TODO: implement noise

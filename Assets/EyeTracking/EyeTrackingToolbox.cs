@@ -61,8 +61,8 @@ public class EyeTrackingToolbox : MonoBehaviour
     Queue trackingDataQueue = new Queue();
     static string msgBuffer = "";
 
-    public bool isObjectRecording = false;
-    private bool isRecording = false;
+    private bool isObjectRecording = true;
+    public bool isRecording {get; private set;} = false;
     private Thread savingThread; // background thread for writing to files
 
     void Awake()
@@ -225,12 +225,12 @@ public class EyeTrackingToolbox : MonoBehaviour
             while (File.Exists(objectTrackingFile) || File.Exists(gazeTrackingFile))
             {
                 counter++;
-                objectTrackingFile = Path.Combine(Application.dataPath, OutputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_head.csv");
+                objectTrackingFile = Path.Combine(OutputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_head.csv");
                 Debug.Log("Object tracking file already exists. Changing filename to " + objectTrackingFile);
-                gazeTrackingFile = Path.Combine(Application.dataPath, OutputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
+                gazeTrackingFile = Path.Combine(OutputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
             }
             WriteHeader();
-            InvokeRepeating("Save", 0.0f, 1.0f); // save data to file every second
+            InvokeRepeating(nameof(Save), 0.0f, 1.0f); // save data to file every second
         }
     }
     
@@ -251,11 +251,21 @@ public class EyeTrackingToolbox : MonoBehaviour
     public void StopRecording()
     {
         isRecording = false;
+        // stop future invokes of Saving function
+        CancelInvoke(nameof(Save));
+
+        // Wait for current save to finish and then call one final WriteTrackingData to empty the queue
+        if (savingThread != null && savingThread.IsAlive)
+        {
+            savingThread.Join();
+        }
+        WriteTrackingData();
+
+        Debug.Log("Stopped Recording");
     }
 
     private void OnDisable()
     {
-        WriteTrackingData();
         if (eyeTracker != null)
         {
             eyeTracker.StopListening(); // stop the background gaze data sampling
@@ -270,41 +280,48 @@ public class EyeTrackingToolbox : MonoBehaviour
     private void WriteHeader()
     {
         // check if output folder exists
-        if (!Directory.Exists(Path.Combine(Application.dataPath, OutputFolder)))
+        if (!Directory.Exists(OutputFolder))
         {
-            Directory.CreateDirectory(Path.Combine(Application.dataPath, OutputFolder));
+            Directory.CreateDirectory(OutputFolder);
         }
         StreamWriter sw = new StreamWriter(objectTrackingFile);
 
         // header for object tracking file
-        string header = "timestamp,";
+        string header = "unity_timestamp,";
         header += "eye_timestamp,";
 
         foreach (TrackedObjectOptions trackedObject in trackedObjectList)
         {
-            switch (trackedObject.trackingOptions)
+            if(trackedObject.gameObject == null)
             {
-                case TrackingOptions.localTransform:
-                    header += trackedObject.gameObject.name + "_localPosition.x,";
-                    header += trackedObject.gameObject.name + "_localPosition.y,";
-                    header += trackedObject.gameObject.name + "_localPosition.z,";
-                    header += trackedObject.gameObject.name + "_localRotation.x,";
-                    header += trackedObject.gameObject.name + "_localRotation.y,";
-                    header += trackedObject.gameObject.name + "_localRotation.z,";
-                    header += trackedObject.gameObject.name + "_localRotation.w,";
-                    break;
-                case TrackingOptions.globalTransform:
-                    header += trackedObject.gameObject.name + "_position.x,";
-                    header += trackedObject.gameObject.name + "_position.y,";
-                    header += trackedObject.gameObject.name + "_position.z,";
-                    header += trackedObject.gameObject.name + "_rotation.x,";
-                    header += trackedObject.gameObject.name + "_rotation.y,";
-                    header += trackedObject.gameObject.name + "_rotation.z,";
-                    header += trackedObject.gameObject.name + "_rotation.w,";
-                    break;
-                default:
-                    Debug.LogError("Unknown option selected for " + trackedObject.gameObject.name);
-                    break;
+                header += ",,,,,,,"; // add 7 empty cells, object seems to be missing
+            }
+            else
+            {
+                switch (trackedObject.trackingOptions)
+                {
+                    case TrackingOptions.localTransform:
+                        header += trackedObject.gameObject.name + "_localPosition.x,";
+                        header += trackedObject.gameObject.name + "_localPosition.y,";
+                        header += trackedObject.gameObject.name + "_localPosition.z,";
+                        header += trackedObject.gameObject.name + "_localRotation.x,";
+                        header += trackedObject.gameObject.name + "_localRotation.y,";
+                        header += trackedObject.gameObject.name + "_localRotation.z,";
+                        header += trackedObject.gameObject.name + "_localRotation.w,";
+                        break;
+                    case TrackingOptions.globalTransform:
+                        header += trackedObject.gameObject.name + "_position.x,";
+                        header += trackedObject.gameObject.name + "_position.y,";
+                        header += trackedObject.gameObject.name + "_position.z,";
+                        header += trackedObject.gameObject.name + "_rotation.x,";
+                        header += trackedObject.gameObject.name + "_rotation.y,";
+                        header += trackedObject.gameObject.name + "_rotation.z,";
+                        header += trackedObject.gameObject.name + "_rotation.w,";
+                        break;
+                    default:
+                        Debug.LogError("Unknown option selected for " + trackedObject.gameObject.name);
+                        break;
+                }
             }
         }
 
@@ -320,7 +337,8 @@ public class EyeTrackingToolbox : MonoBehaviour
 
         // header for gaze tracking file
         sw = new StreamWriter(gazeTrackingFile);
-        header = "eye_timestamp,";
+        header = "unity_timestamp,";
+        header += "eye_timestamp,";
         header += "left_validata,";
         header += "left_eye_openness,";
         header += "left_eye_pupil_diameter,";
@@ -350,6 +368,7 @@ public class EyeTrackingToolbox : MonoBehaviour
     {
         StringBuilder datasetLine = new StringBuilder(350); // adjust capacity to your needs
 
+        datasetLine.Append(gazeDataSample.unityTimestamp.ToSafeString() + ",");
         datasetLine.Append(gazeDataSample.deviceTimestamp.ToString() + ",");
 
         // left eye
@@ -388,29 +407,36 @@ public class EyeTrackingToolbox : MonoBehaviour
 
         foreach (TrackedObjectOptions trackedObject in trackedObjectList)
         {
-            switch (trackedObject.trackingOptions)
+            if(trackedObject.gameObject == null)
             {
-                case TrackingOptions.localTransform:
-                    datasetLine.Append(trackedObject.gameObject.transform.localPosition.x.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.localPosition.y.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.localPosition.z.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.localRotation.x.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.localRotation.y.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.localRotation.z.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.localRotation.w.ToString("F10") + ",");
-                    break;
-                case TrackingOptions.globalTransform:
-                    datasetLine.Append(trackedObject.gameObject.transform.position.x.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.position.y.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.position.z.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.rotation.x.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.rotation.y.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.rotation.z.ToString("F10") + ",");
-                    datasetLine.Append(trackedObject.gameObject.transform.rotation.w.ToString("F10") + ",");
-                    break;
-                default:
-                    Debug.LogError("Unknown option selected for " + trackedObject.gameObject.name);
-                    break;
+                datasetLine.Append(",,,,,,,"); // add 7 empty cells, object seems to be missing
+            }
+            else
+            {
+                switch (trackedObject.trackingOptions)
+                {
+                    case TrackingOptions.localTransform:
+                        datasetLine.Append(trackedObject.gameObject.transform.localPosition.x.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.localPosition.y.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.localPosition.z.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.x.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.y.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.z.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.w.ToString("F10") + ",");
+                        break;
+                    case TrackingOptions.globalTransform:
+                        datasetLine.Append(trackedObject.gameObject.transform.position.x.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.position.y.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.position.z.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.rotation.x.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.rotation.y.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.rotation.z.ToString("F10") + ",");
+                        datasetLine.Append(trackedObject.gameObject.transform.rotation.w.ToString("F10") + ",");
+                        break;
+                    default:
+                        Debug.LogError("Unknown option selected for " + trackedObject.gameObject.name);
+                        break;
+                }
             }
         }
 

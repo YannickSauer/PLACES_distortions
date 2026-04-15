@@ -58,6 +58,9 @@ public class DotManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        // deactivating dot-own fixation target if scene is shown, to avoid confusion (Tolga)
+        showFixationTarget = false;
+        
         Debug.Log(SystemInfo.graphicsShaderLevel);
 
         // set background color
@@ -249,6 +252,19 @@ public class DotManager : MonoBehaviour
         Vector3[] pos = RandomDots(nDots);
         Vector2[] invPos = InverseDistortion(pos);
         Vector4[] projectedPos = ProjectOnScene(invPos);
+
+        // Fix fixation target position: project straight ahead from camera onto scene
+        if (showFixationTarget)
+        {
+            Quaternion horizontalCamOrientation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+            Ray centerRay = new Ray(transform.position, horizontalCamOrientation * Vector3.forward);
+            RaycastHit hit;
+            if (Physics.Raycast(centerRay, out hit))
+            {
+                projectedPos[projectedPos.Length - 1] = new Vector4(hit.point.x, hit.point.y, hit.point.z, 1.0f);
+            }
+        }
+
         dotPositions = projectedPos;
         positionBuffer.SetData(dotPositions);
     }
@@ -271,6 +287,19 @@ public class DotManager : MonoBehaviour
     {
         Vector2[] invPos = InverseDistortion(initDots);
         Vector4[] projectedPos = ProjectOnScene(invPos);
+
+        // Fix fixation target position: project straight ahead from camera onto scene
+        if (showFixationTarget)
+        {
+            Quaternion horizontalCamOrientation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+            Ray centerRay = new Ray(transform.position, horizontalCamOrientation * Vector3.forward);
+            RaycastHit hit;
+            if (Physics.Raycast(centerRay, out hit))
+            {
+                projectedPos[projectedPos.Length - 1] = new Vector4(hit.point.x, hit.point.y, hit.point.z, 1.0f);
+            }
+        }
+
         positionBuffer.SetData(projectedPos);
     }
 
