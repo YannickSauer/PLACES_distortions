@@ -11,9 +11,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Adaptation.unity
     guid: dc0fef5af92698a41b37c6d505246f79
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/RanDot.unity
     guid: 06fe50b9359006747b435f3741b49e6b
+  - enabled: 1
+    path: Assets/Scenes/SwimTest.unity
+    guid: f1c92c74e7504194682ed8ba45adde36
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 40d912408cd2ebc4f9b12ab5d63a9b28, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 73e1e95062945e644a8a840a0817f33b, type: 2}
