@@ -1,0 +1,9 @@
+Good! Now we remove the visualization.
+Only the fixation target remains.
+
+You will hear a beep at each head turn.
+After 4 turns, return to center and decide:
+
+Trigger = unstable, Trackpad = stable
+
+<b>Press trackpad to continue.</b>

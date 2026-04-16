@@ -1971,6 +1971,10 @@ PrefabInstance:
       propertyPath: m_BackGroundColor.r
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 4759481945562532823, guid: 243f6cdd9bc9c844e8e0f27128ddf7c9, type: 3}
+      propertyPath: active
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2673,7 +2677,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.topupFrequency
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseData.inAdaptationPhase
@@ -2681,7 +2685,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.topUpDuration
-      value: 10
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.samplingFrequency
@@ -2689,11 +2693,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.adaptationDuration
-      value: 15
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.preBaselineDuration
-      value: 10
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.radialStimulisLevels.Array.size
@@ -2800,7 +2804,7 @@ MonoBehaviour:
   balloonColors:
   - {r: 0.5498886, g: 1, b: 0.28773582, a: 0}
   - {r: 0.2783019, g: 0.6501763, b: 1, a: 0}
-  roundTime: 5
+  roundTime: 10
   roundCounter: 0
   totalRounds: 0
   highScores: []
@@ -2825,6 +2829,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: f44a8ce67f3a1024a96c88158d2d6659, type: 3}
   - {fileID: 8300000, guid: 1765c730083274243bba4b870836a9c0, type: 3}
   - {fileID: 8300000, guid: ea62663300064fe4badcc7291c551da5, type: 3}
+  roundEndClip: {fileID: 8300000, guid: d2371eda16845f64e95a73fba2e3ec9d, type: 3}
   duration: 120
   canPlayAgain: 0
   isDone: 0

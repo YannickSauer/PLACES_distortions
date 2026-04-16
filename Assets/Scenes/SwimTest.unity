@@ -471,6 +471,9 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 8cc9533850747a2419d3acbd471fcd74, type: 3}
   - {fileID: 8300000, guid: 7ee2fc2a67f4f144a8717dd7577ffb2a, type: 3}
   - {fileID: 8300000, guid: 38436ad78abd5884da95472b5f5a3f3b, type: 3}
+  dotTransitionPath: ./Instructions/SwimTraining/07.txt
+  trainingEndPath: ./Instructions/SwimTraining/08.txt
+  trainingEndClip: {fileID: 8300000, guid: ea8821d1bb2eecb408c7b3a9948c1f18, type: 3}
   bpm: 94
   firstBeat: 0.54
   minGoodTrials: 10
@@ -1464,7 +1467,7 @@ MonoBehaviour:
   m_text: Sample text
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 0804eace4d54b304b9038d501b4c6322, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1854,7 +1857,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  - {fileID: 2100000, guid: 0804eace4d54b304b9038d501b4c6322, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

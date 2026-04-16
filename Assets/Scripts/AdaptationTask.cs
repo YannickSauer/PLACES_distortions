@@ -47,6 +47,7 @@ public class AdaptationTask : MonoBehaviour
     [Header("Trainings Settings")]
     public List<string> pathList;
     public List<AudioClip> trainingAudioClips;
+    public AudioClip roundEndClip; // sound played when the round timer runs out
     private AudioSource trainingAudioSource;
 
     [Header("Debug Data")]
@@ -183,14 +184,22 @@ public class AdaptationTask : MonoBehaviour
         // wait for the round to finish
         yield return new WaitForSeconds(roundTime);
         // end the round
-        // destroy all balloons
-        foreach (Balloon balloon in balloons)
+        inRound = false; // set this first so no new balloons are spawned while cleanup
+        // play round-end sound so the participiant knows the round is over
+        if (roundEndClip != null)
         {
-            if (balloon != null)
-            {
-                Destroy(balloon.gameObject);
-            }
+            AudioSource.PlayClipAtPoint(roundEndClip, Camera.main.transform.position);
         }
+        // destroy all balloons
+            foreach (Balloon balloon in balloons)
+            {
+                if (balloon != null)
+                {
+                    Destroy(balloon.gameObject);
+                }
+            }
+        // clear the list so no stale references remain
+        balloons.Clear(); 
         // save the score
         highScores.Add(score);
         // sort the high scores
@@ -200,10 +209,7 @@ public class AdaptationTask : MonoBehaviour
         {
             highScores.RemoveRange(5, highScores.Count - 5);
         }
-        inRound = false;
-
-        //Debug (Tolga)
-        Debug.Log("Round ended. roundCounter: " + roundCounter + " totalRounds: " + totalRounds + " canPlayAgain: " + canPlayAgain + " HasNextRound: " + HasNextRound);
+        // inRound was already set to false above
 
         OnRoundOver?.Invoke();
         if (!HasNextRound)
@@ -233,7 +239,7 @@ public class AdaptationTask : MonoBehaviour
         }
     }
 
-    private IEnumerator SpawnBalloon(float delay, int groupId, int balloonId, Vector3 pos)
+    private IEnumerator SpawnBalloon(float delay, int groupId, int balloonId, Vector3 pos, bool forceSpawn = false)
     {
         // wait for the delay before spawning the balloon
         if (delay > 0)
@@ -241,10 +247,11 @@ public class AdaptationTask : MonoBehaviour
             yield return new WaitForSeconds(delay);
         }
         
-        // if (!inRound)
-        // {
-        //     yield break; // if not in round, do not spawn the balloon
-        // }
+        if (!inRound && !forceSpawn)
+        {
+            yield break; // if not in round, do not spawn the balloon
+        }
+
         // spawn the balloon at the group position with a random offset
         GameObject balloonObj = Instantiate(balloonPrefab, pos, Quaternion.identity);
 
@@ -406,7 +413,7 @@ public class AdaptationTask : MonoBehaviour
     public void SpawnForTutorial(int groupId, Vector3 pos)
     {
         Debug.Log("Spawn for tutorial.");
-        StartCoroutine(SpawnBalloon(0.0f, groupId, 0, pos));
+        StartCoroutine(SpawnBalloon(0.0f, groupId, 0, pos, true));
     }
 
 

@@ -43,6 +43,10 @@ public class SwimTest : MonoBehaviour
     public ExperimentManager.AftereffectSettings trainingSettings;
     public List<string> pathList;
     public List<AudioClip> trainingAudioClips; // list of audio clips to play during the training, should be in the same order as the pathList.
+    [Header("Extra instructions")]
+    public string dotTransitionPath; // path to the DotTransition.txt file (shown after warm-up dots, before real dot trials)
+    public string trainingEndPath; // path to the TrainingEnd.txt file (shown after all training is complete)
+    public AudioClip trainingEndClip; // audio clip for the training-end instruction
     public float bpm; // frequency of the metronome in bpm
     public float firstBeat;
     public int minGoodTrials = 10; // number of good trials to complete the training
@@ -362,6 +366,7 @@ public class SwimTest : MonoBehaviour
             string nextInstructionText = DisplayInformation.ReadText(pathToText);
             Debug.Log(nextInstructionText);
             instructionText.text = nextInstructionText;
+            DisplayInformation.ShowTrainingBackground();
 
             // Hide targets during instruction text display so they don't overlap
             Transform hideTargetL = trainingObj.transform.Find("Wall/UI/TargetLeft");
@@ -430,6 +435,7 @@ public class SwimTest : MonoBehaviour
             switch (step)
             {
                 case 0: // Practice head movement with metronome
+                    DisplayInformation.HideTrainingBackground();
                     yield return StartCoroutine(MetronomeHeadMovement());
                     break;
 
@@ -437,15 +443,18 @@ public class SwimTest : MonoBehaviour
                         // remove GUI elements
                     trainingObj.transform.Find("Wall/UI/Bar").gameObject.SetActive(false);
                     trainingObj.transform.Find("Wall/UI/HeadIndicator").gameObject.SetActive(false);
+                    DisplayInformation.HideTrainingBackground();
                     yield return StartCoroutine(MetronomeHeadMovement());
                     break;
                 case 2: // Practice without metronome
+                    DisplayInformation.HideTrainingBackground();
                     yield return StartCoroutine(TrainingHeadMovement());
                     break;
                 case 3: // Practice with distortions
                         // set distortions to training values
                     camDistortions.magn = 1.2f;
                     camDistortions.active = true;
+                    DisplayInformation.HideTrainingBackground();
                     yield return StartCoroutine(TrainingHeadMovement());
                     camDistortions.magn = 1.0f;
                     camDistortions.active = false;
@@ -465,11 +474,13 @@ public class SwimTest : MonoBehaviour
                         exampleMags.RemoveAt(0);
                         camDistortions.magn = mag;
                         camDistortions.active = (mag != 1.0f); // only activate distortions if mag is not 1, to avoid any weird visuals during the "stable" trials (Tolga)
+                        DisplayInformation.HideTrainingBackground();
                         yield return StartCoroutine(TrainingHeadMovement(4));
                         camDistortions.magn = 1.0f;
                         camDistortions.active = false;
 
                         instructionText.text = "Trigger = unstable, Trackpad = stable";
+                        DisplayInformation.ShowTrainingBackground();
 
                         fireLeftPressed = false;
                         fireRightPressed = false;
@@ -520,6 +531,7 @@ public class SwimTest : MonoBehaviour
                                 instructionText.text = "Correct! This was an unstable trial.\nPress trackpad to continue.";
                             }
                         }
+                        DisplayInformation.ShowTrainingBackground(); // update background size for feedback text
                         // Reset input state and wait for explicit trackpad press
                         touchpadPressed = false;
                         fireLeftPressed = false;
@@ -560,13 +572,16 @@ public class SwimTest : MonoBehaviour
                     yield return StartCoroutine(ResampleAndReproject());
 
                     // Warm-up: practice head movements with dots (full GUI visible)
-                    yield return StartCoroutine(TrainingHeadMovement(4));
+                    DisplayInformation.HideTrainingBackground();
+                    yield return StartCoroutine(TrainingHeadMovement(4, false));
 
                     // Hide dots during instruction
                     dotManager.active = false;
 
-                    // Instruction: now remove visualization, only fixation target remains
-                    instructionText.text = "Good! Now we remove the visualization.\nOnly the fixation target remains.\n\nYou will hear a beep at each head turn.\nAfter 4 turns, return to center and decide:\n\nTrigger = unstable, Trackpad = stable\n\n<b>Press trackpad to continue.<b>";
+                    // Instruction: now remove visualization, only fixation target remains (loaded from DotTransition.txt)
+                    string dotTransFullPath = Path.Combine(Application.dataPath, dotTransitionPath);
+                    instructionText.text = DisplayInformation.ReadText(dotTransFullPath);
+                    DisplayInformation.ShowTrainingBackground();
 
                     // Play audio for this instruction
                     if (dotTransitionClip != null)
@@ -596,6 +611,7 @@ public class SwimTest : MonoBehaviour
                         exampleMags.RemoveAt(0);
                         dotManager.distortionParam.x = mag;
                         instructionText.text = ""; // clear instruction text before showing dots
+                        DisplayInformation.HideTrainingBackground();
                         yield return StartCoroutine(ResampleAndReproject());
                         yield return StartCoroutine(HeadMovement());
                         dotManager.distortionParam.x = 1.0f;
@@ -604,6 +620,7 @@ public class SwimTest : MonoBehaviour
                         dotManager.active = false;
 
                         instructionText.text = "Trigger = unstable, Trackpad = stable";
+                        DisplayInformation.ShowTrainingBackground();
 
                         fireLeftPressed = false;
                         fireRightPressed = false;
@@ -652,6 +669,7 @@ public class SwimTest : MonoBehaviour
                                 instructionText.text = "Correct! This was an unstable trial.\nPress trackpad to continue.";
                             }
                         }
+                        DisplayInformation.ShowTrainingBackground(); // update background size for feedback text
                         // Reset input state and wait for explicit trackpad press
                         touchpadPressed = false;
                         fireLeftPressed = false;
@@ -665,9 +683,18 @@ public class SwimTest : MonoBehaviour
             touchpadPressed = false;
         }
 
-        //  training is completed 
-        instructionText.text = "Great job! You have completed the head movement training.\nPress trackpad to start the test.";
+        //  training is completed (text and audio loaded from TrainingEnd.txt and trainingEndClip)
+        string trainingEndFullPath = Path.Combine(Application.dataPath, trainingEndPath);
+        instructionText.text = DisplayInformation.ReadText(trainingEndFullPath);
+        DisplayInformation.ShowTrainingBackground();
+        if (trainingEndClip != null)
+        {
+            beepSource.pitch = 1f;
+            beepSource.PlayOneShot(trainingEndClip);
+        }
         yield return new WaitUntil(() => AnyContinueInput());
+        beepSource.Stop(); // stop audio if still playing when participant continues
+        DisplayInformation.HideTrainingBackground();
         isTraining = false; // set training flag to false
 
         // turning off the scene and the training GUI after training is completed, 
@@ -879,12 +906,13 @@ public class SwimTest : MonoBehaviour
         OnTurnHead += PlayBeep;
     }
 
-    private IEnumerator TrainingHeadMovement(int minGoodTrials = 10)
+    private IEnumerator TrainingHeadMovement(int minGoodTrials = 10, bool showCounter = true)
     {
 
         int goodTrial = 0;
         TMP_Text instructionText = GameObject.Find("TrainingText").GetComponent<TMP_Text>();
-        instructionText.text = "Correct head movements: " + goodTrial.ToString();
+        if (showCounter) instructionText.text = "Correct head movements: " + goodTrial.ToString();
+        else instructionText.text = "";
 
         //if (eyeTracker != null)
         //{
@@ -911,8 +939,7 @@ public class SwimTest : MonoBehaviour
 
         // if the participant moved in the right time, then increase the good trial counter
         goodTrial++;
-        instructionText.text = "Correct head movements: " + goodTrial.ToString();
-
+        if (showCounter) instructionText.text = "Correct head movements: " + goodTrial.ToString();
 
 
 
@@ -938,7 +965,7 @@ public class SwimTest : MonoBehaviour
 
             // if the participant moved in the right time, then increase the good trial counter
             goodTrial++;
-            instructionText.text = "Correct head movements: " + goodTrial.ToString();
+            if (showCounter) instructionText.text = "Correct head movements: " + goodTrial.ToString();
 
 
         }

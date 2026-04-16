@@ -17,6 +17,10 @@ public class Balloon : MonoBehaviour
     public AudioClip popSound;
     public AudioClip wrongPopSound;
 
+    //[Header("Initial Size")] // (Tolga)
+    //public float initialScaleGreen = 0.2f;
+    //public float initialScaleBlue = 0.15f;
+
     private float growSpeed; // individual grow speed
     private bool isActive = true;
 
@@ -65,6 +69,10 @@ public class Balloon : MonoBehaviour
         {
             renderer.material.color = color;
         }
+
+        // start size
+        //float startScale = (groupId == 0) ? initialScaleGreen : initialScaleBlue;
+        //transform.localScale = Vector3.one * startScale;
     }
 
     public void Pop(Vector3 direction)
