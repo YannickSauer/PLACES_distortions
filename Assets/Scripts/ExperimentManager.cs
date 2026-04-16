@@ -221,6 +221,14 @@ public class ExperimentManager : MonoBehaviour
         Debug.Log("Starting experiment...");
         isRunning = true;
 
+        // Reset button state to prevent training input from carrying over
+        buttonPressed = false;
+        yield return new WaitForSeconds(0.5f);
+        buttonPressed = false;
+
+        // Switch to adaptation scene so InstructionText is available
+        yield return StartCoroutine(SwitchScene(adaptationPhaseSettings.sceneName));
+
         string startExpTextFullPath = Path.Combine(Application.dataPath, startExpTextPath);
         string startExperimentText = DisplayInformation.ReadText(startExpTextFullPath);
         DisplayInformation.UpdateInstructionText(startExperimentText);
@@ -286,6 +294,8 @@ public class ExperimentManager : MonoBehaviour
         // turn distortions on
         adaptationPhaseData.inAdaptationPhase = true;
         adaptationPhaseData.distorted = true;
+        distortions.magn = adaptationMagnification;
+        distortions.radial = adaptationRadial;
         distortions.active = true;
         eyeTracker?.StartRecording("adaptation");
         yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration, 0)); // adaptation phase with distortions

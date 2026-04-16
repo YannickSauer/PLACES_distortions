@@ -441,8 +441,8 @@ MonoBehaviour:
   centerThreshold: 2
   scene: {fileID: 0}
   flashImage: {fileID: 354504094}
-  colorRight: {r: 1, g: 0, b: 1, a: 0.19607843}
-  colorLeft: {r: 0, g: 1, b: 1, a: 0.19607843}
+  colorRight: {r: 1, g: 1, b: 1, a: 0.101960786}
+  colorLeft: {r: 1, g: 1, b: 1, a: 0.101960786}
   flashDuration: 0.2
   trainingSettings:
     magnificationStimulusLevels:
@@ -463,24 +463,21 @@ MonoBehaviour:
   - ./Instructions/SwimTraining/04.txt
   - ./Instructions/SwimTraining/05.txt
   - ./Instructions/SwimTraining/06.txt
-  - ./Instructions/SwimTraining/06.txt
-  - ./Instructions/SwimTraining/06.txt
-  - ./Instructions/SwimTraining/06.txt
   trainingAudioClips:
-  - {fileID: 8300000, guid: a9ee557442ed9524b9d4317056e2fd50, type: 3}
-  - {fileID: 8300000, guid: faee94ec13e99854a9941c1d9678cfcf, type: 3}
-  - {fileID: 8300000, guid: 280dea6325cc6fb459bb77c934562888, type: 3}
-  - {fileID: 8300000, guid: f44a8ce67f3a1024a96c88158d2d6659, type: 3}
-  - {fileID: 8300000, guid: 1765c730083274243bba4b870836a9c0, type: 3}
-  - {fileID: 8300000, guid: ea62663300064fe4badcc7291c551da5, type: 3}
   - {fileID: 8300000, guid: 2286e79232849a3419ad4987c35bd342, type: 3}
-  - {fileID: 0}
+  - {fileID: 8300000, guid: 2ea10f9e0ea9eae458d351ecb5075957, type: 3}
+  - {fileID: 8300000, guid: 876105e21b51f684786b8f7abae1ffcd, type: 3}
+  - {fileID: 8300000, guid: aa90d92c1240b6e4fa55318fc1087b8e, type: 3}
+  - {fileID: 8300000, guid: 8cc9533850747a2419d3acbd471fcd74, type: 3}
+  - {fileID: 8300000, guid: 7ee2fc2a67f4f144a8717dd7577ffb2a, type: 3}
+  - {fileID: 8300000, guid: 38436ad78abd5884da95472b5f5a3f3b, type: 3}
   bpm: 94
   firstBeat: 0.54
   minGoodTrials: 10
   beepClip: {fileID: 8300000, guid: 8f90fcf88217c31419f851cf2ce94d12, type: 3}
   metronomeClip: {fileID: 8300000, guid: b6a7c27ecf793f74c9ee2daaefaf7057, type: 3}
   instructionReminderClip: {fileID: 8300000, guid: 7e7ee56af00b78446a4310c7f947ee44, type: 3}
+  dotTransitionClip: {fileID: 8300000, guid: 8cf6829b4f43a9b45a55e11cf9c2c317, type: 3}
   correctClip: {fileID: 8300000, guid: 6e28a89114f794a4099c855952ab466e, type: 3}
   wrongClip: {fileID: 8300000, guid: dd3636138a0c2894d9da67a2ce2e9873, type: 3}
 --- !u!4 &807878717

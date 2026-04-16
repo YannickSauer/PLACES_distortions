@@ -1480,7 +1480,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94da9119c5b59fd4ebdce7b47e9a3b63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  etprovider: 1
+  etprovider: 0
   calibrateKey: 99
   saveRaycastHitpoint: 0
   trackedObjectList:
@@ -2818,6 +2818,13 @@ MonoBehaviour:
   - ./Instructions/TryShootingBlue.txt
   - ./Instructions/TestRound.txt
   - ./Instructions/Recenter.txt
+  trainingAudioClips:
+  - {fileID: 8300000, guid: a9ee557442ed9524b9d4317056e2fd50, type: 3}
+  - {fileID: 8300000, guid: faee94ec13e99854a9941c1d9678cfcf, type: 3}
+  - {fileID: 8300000, guid: 280dea6325cc6fb459bb77c934562888, type: 3}
+  - {fileID: 8300000, guid: f44a8ce67f3a1024a96c88158d2d6659, type: 3}
+  - {fileID: 8300000, guid: 1765c730083274243bba4b870836a9c0, type: 3}
+  - {fileID: 8300000, guid: ea62663300064fe4badcc7291c551da5, type: 3}
   duration: 120
   canPlayAgain: 0
   isDone: 0

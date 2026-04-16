@@ -1,6 +1,7 @@
 Did the wall appear to move (appear unstable)?
-Press left to see the stable movement again.
-Press right to see the unstable movement again.
+That was an example of visual instability.
 
+During the test, 
+you will judge whether the movement appears stable or unstable.
 
-Press Space to continue.
+<b>Press trackpad to continue.<b>

@@ -46,6 +46,8 @@ public class AdaptationTask : MonoBehaviour
 
     [Header("Trainings Settings")]
     public List<string> pathList;
+    public List<AudioClip> trainingAudioClips;
+    private AudioSource trainingAudioSource;
 
     [Header("Debug Data")]
     public float duration = 120f; // in seconds; duration of the test
@@ -75,6 +77,11 @@ public class AdaptationTask : MonoBehaviour
         // start the timer
         timer = Time.time;
 
+        // Always create a dedicated AudioSource for training voiceover
+        // (don't reuse existing one which may be used for balloon sounds)
+        trainingAudioSource = gameObject.AddComponent<AudioSource>();
+        trainingAudioSource.playOnAwake = false;
+
         // set the min and max grow speed for all balloons
         Balloon.minGrowSpeed = minGrowSpeed;
         Balloon.maxGrowSpeed = maxGrowSpeed;
@@ -96,15 +103,25 @@ public class AdaptationTask : MonoBehaviour
             Debug.Log(nextInstructionText);
             OnNextTrainingStep?.Invoke(nextInstructionText);
 
+            // Play training audio if available for this step
+            if (trainingAudioClips != null && step < trainingAudioClips.Count && trainingAudioClips[step] != null)
+            {
+                trainingAudioSource.Stop();
+                trainingAudioSource.pitch = 1f;
+                trainingAudioSource.PlayOneShot(trainingAudioClips[step]);
+            }
+
             buttonPressed = false;
             switch (step)
             {
                 case 0: // Show Welcome Text
                     yield return new WaitUntil(() => buttonPressed);
+                    trainingAudioSource.Stop();
                     break;
 
                 case 1: // Show LookAround Text
                     yield return new WaitUntil(() => buttonPressed);
+                    trainingAudioSource.Stop();
                     break;
 
                 case 2: // Destroy a green balloon
@@ -129,13 +146,14 @@ public class AdaptationTask : MonoBehaviour
 
                 case 4: // Play one test round
                     yield return new WaitUntil(() => buttonPressed);
+                    trainingAudioSource.Stop();
                     // hide instruction and background
                     OnNextTrainingStep?.Invoke("hide");
                     yield return StartCoroutine(StartRound());
                     break;
 
                 case 5: // Recenter head
-                    yield return new WaitForSeconds(7);
+                    yield return new WaitForSeconds(11);
                     yield return this.GetComponent<RecenterHead>().RunRecenter();
                     break;
             }

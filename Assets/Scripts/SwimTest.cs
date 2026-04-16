@@ -50,6 +50,7 @@ public class SwimTest : MonoBehaviour
     public AudioClip beepClip;
     public AudioClip metronomeClip;
     public AudioClip instructionReminderClip;
+    public AudioClip dotTransitionClip;
     public AudioClip correctClip;
     public AudioClip wrongClip;
     private float lastBeatNum = 0;
@@ -205,32 +206,12 @@ public class SwimTest : MonoBehaviour
                 StartCoroutine(RunTest());
             }
         }
-        // if the training wall should be hidden, then disable the wall renderer (Tolga)
-        if (hideTrainingWall && trainingObj != null)
-        {
-            Transform pTransform = trainingObj.transform.Find("Wall/Plane");
-            if (pTransform != null && pTransform.gameObject.activeSelf)
-            {
-                pTransform.gameObject.SetActive(false);
-            }
-
-            Transform uiTransform = trainingObj.transform.Find("Wall/UI");
-            if (uiTransform != null && uiTransform.gameObject.activeSelf)
-            {
-                uiTransform.gameObject.SetActive(true);
-            }
-        }
-
+       
         if (Input.GetKeyDown(KeyCode.Space) && (isTraining || isTestRunning)) touchpadPressed = true;
 
         //if (expManager == null) // if expManager is null, then the scene was started outside of the experiment. Allow to run training or test by button press
 
-        // Wrap the problematic call in a null check so it doesn't crash if scene is missing (Tolga)
-        if (scene != null)
-
-        {
-            AdjustForMagnification();
-        }
+        
     }
 
     void RepositionScene()
@@ -335,10 +316,36 @@ public class SwimTest : MonoBehaviour
         List<float> exampleMags = new List<float> { 1.0f, 1.2f, 1.0f, 0.9f, 1.0f, 1.3f };
         isTraining = true; // set training flag to true
         dotManager.active = false; // make sure that the random dots are not visible during training
-        if (scene != null) scene.SetActive(false); // hide the random dot scene during training
 
-        // Reposition scene and training objects to correct distance from player
-        RepositionScene();
+        // Reposition training objects to correct distance from player (without activating dots)
+        if (Camera.main != null)
+        {
+            Vector3 headPosition = Camera.main.transform.position;
+            if (scene != null) scene.transform.position = headPosition;
+            trainingObj.transform.position = headPosition;
+
+            Vector3 headForward = Camera.main.transform.forward;
+            headForward.y = 0;
+            initHeadForward = headForward.normalized;
+
+            if (scene != null)
+            {
+                scene.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
+                scene.transform.rotation = Quaternion.LookRotation(headForward);
+                scene.SetActive(false); // keep scene hidden
+            }
+
+            trainingObj.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
+            trainingObj.transform.rotation = Quaternion.LookRotation(headForward);
+        }
+
+        dotManager.active = false; // make sure dots are still off after repositioning
+
+        // Save original target scales and colors for reset
+        Transform trRef = trainingObj.transform.Find("Wall/UI/TargetRight");
+        Transform tlRef = trainingObj.transform.Find("Wall/UI/TargetLeft");
+        Vector3 savedTargetScale = tlRef != null ? tlRef.localScale : Vector3.one * 0.1f;
+        Color savedTargetColor = tlRef != null ? tlRef.GetComponent<Renderer>().material.color : Color.red;
 
         // Prepare Training
         trainingData = new ExperimentManager.AftereffectData(trainingSettings);
@@ -356,6 +363,18 @@ public class SwimTest : MonoBehaviour
             Debug.Log(nextInstructionText);
             instructionText.text = nextInstructionText;
 
+            // Hide targets during instruction text display so they don't overlap
+            Transform hideTargetL = trainingObj.transform.Find("Wall/UI/TargetLeft");
+            Transform hideTargetR = trainingObj.transform.Find("Wall/UI/TargetRight");
+            Transform hideFixation = trainingObj.transform.Find("Wall/UI/FixationTarget");
+            Transform hideBar = trainingObj.transform.Find("Wall/UI/Bar");
+            Transform hideHead = trainingObj.transform.Find("Wall/UI/HeadIndicator");
+            if (hideTargetL != null) hideTargetL.gameObject.SetActive(false);
+            if (hideTargetR != null) hideTargetR.gameObject.SetActive(false);
+            if (hideFixation != null) hideFixation.gameObject.SetActive(false);
+            if (hideBar != null) hideBar.gameObject.SetActive(false);
+            if (hideHead != null) hideHead.gameObject.SetActive(false);
+
             // Play training audio if available for this step
             if (trainingAudioClips != null && step < trainingAudioClips.Count && trainingAudioClips[step] != null)
             {
@@ -363,9 +382,13 @@ public class SwimTest : MonoBehaviour
                 beepSource.PlayOneShot(trainingAudioClips[step]);
             }
 
+            fireLeftPressed = false;
+            fireRightPressed = false;
             yield return new WaitUntil(() =>
                 Input.GetKeyDown(KeyCode.LeftArrow) ||
                 Input.GetKeyDown(KeyCode.RightArrow) ||
+                fireLeftPressed ||
+                fireRightPressed ||
                 AnyContinueInput()
 
             );
@@ -373,12 +396,35 @@ public class SwimTest : MonoBehaviour
             
             if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
-                step = step - 2; // repeat the previous two steps
+                step = step - 2; // repeat two steps back (stable)
             }
-            else if (Input.GetKeyDown(KeyCode.RightArrow))
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || fireLeftPressed || fireRightPressed)
             {
-                // repeat the previous step
+                // repeat the previous step (unstable) - trigger also replays unstable
                 step = step - 1;
+            }
+
+            // Show targets again before the exercise
+            if (hideTargetL != null) hideTargetL.gameObject.SetActive(true);
+            if (hideTargetR != null) hideTargetR.gameObject.SetActive(true);
+            if (hideFixation != null) hideFixation.gameObject.SetActive(true);
+            // Show Bar and HeadIndicator only for case 0 (they get removed in case 1)
+            if (step <= 0)
+            {
+                if (hideBar != null) hideBar.gameObject.SetActive(true);
+                if (hideHead != null) hideHead.gameObject.SetActive(true);
+            }
+
+            // Reset target scales and colors
+            if (trRef != null)
+            {
+                trRef.localScale = savedTargetScale;
+                trRef.GetComponent<Renderer>().material.color = savedTargetColor;
+            }
+            if (tlRef != null)
+            {
+                tlRef.localScale = savedTargetScale;
+                tlRef.GetComponent<Renderer>().material.color = savedTargetColor;
             }
 
             switch (step)
@@ -399,14 +445,16 @@ public class SwimTest : MonoBehaviour
                 case 3: // Practice with distortions
                         // set distortions to training values
                     camDistortions.magn = 1.2f;
+                    camDistortions.active = true;
                     yield return StartCoroutine(TrainingHeadMovement());
                     camDistortions.magn = 1.0f;
+                    camDistortions.active = false;
 
                     // else: space pressed -> continue to next step
                     break;
-                case 4: // Practice without metronome
-
-                    // do nothing here
+                case 4: // replay stable or unstable on request
+                    // do nothing here, the for-loop handles the input
+                    // but we need to handle trigger/touchpad for replay
                     break;
                 case 5: // Practice with different distortion trials
                         // for loop over 6 example trials, continue until all are correct
@@ -416,41 +464,47 @@ public class SwimTest : MonoBehaviour
                         float mag = exampleMags[0];
                         exampleMags.RemoveAt(0);
                         camDistortions.magn = mag;
+                        camDistortions.active = (mag != 1.0f); // only activate distortions if mag is not 1, to avoid any weird visuals during the "stable" trials (Tolga)
                         yield return StartCoroutine(TrainingHeadMovement(4));
                         camDistortions.magn = 1.0f;
+                        camDistortions.active = false;
 
-                        instructionText.text = "Press left if it felt unstable, right if it felt stable.";
+                        instructionText.text = "Trigger = unstable, Trackpad = stable";
 
-                        yield return new WaitUntil(() =>
-                            Input.GetKeyDown(KeyCode.LeftArrow) ||
-                            Input.GetKeyDown(KeyCode.RightArrow));
+                        fireLeftPressed = false;
+                        fireRightPressed = false;
+                        touchpadPressed = false;
                         int ans = -1;
-                        if (Input.GetKeyDown(KeyCode.LeftArrow))
+                        yield return new WaitUntil(() =>
                         {
-                            ans = 0; // unstable
-                            Flash(colorLeft, flashDuration);
-                        }
-                        else if (Input.GetKeyDown(KeyCode.RightArrow))
-                        {
-                            ans = 1; // stable
-                            Flash(colorRight, flashDuration);
-                        }
+                            if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed || fireRightPressed)
+                            {
+                                ans = 0;
+                                return true;
+                            }
+                            if (Input.GetKeyDown(KeyCode.RightArrow) || touchpadPressed)
+                            {
+                                ans = 1;
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (ans == 0) Flash(colorLeft, flashDuration);
+                        else if (ans == 1) Flash(colorRight, flashDuration);
+
                         // 1. it was a stable trial
                         if (mag == 1.0f)
                         {
                             if (ans == 1)
                             {
                                 // correct
-                                instructionText.text = "Correct! This was a stable trial.\nPress space key to continue.";
-                                yield return new WaitUntil(() => AnyContinueInput());
-
+                                instructionText.text = "Correct! This was a stable trial.\nPress trackpad to continue.";
                             }
                             else
                             {
-                                instructionText.text = "Wrong! This was a stable trial.\nPress space key to continue.";
+                                instructionText.text = "Wrong! This was a stable trial.\nPress trackpad to continue.";
                                 // add the current mag to the end of the exampleMags list, so that it will be repeated later
                                 exampleMags.Add(mag);
-                                yield return new WaitUntil(() => AnyContinueInput());
                             }
                         }
                         // 2. it was an unstable trial
@@ -458,78 +512,131 @@ public class SwimTest : MonoBehaviour
                         {
                             if (ans == 1) // wrong
                             {
-                                instructionText.text = "Wrong! This was an unstable trial.\nPress space key to continue.";
+                                instructionText.text = "Wrong! This was an unstable trial.\nPress trackpad to continue.";
                                 exampleMags.Add(mag);
-                                yield return new WaitUntil(() => AnyContinueInput());
-
                             }
                             else // correct
                             {
-                                instructionText.text = "Correct! This was an unstable trial.\nPress space key to continue.";
-                                // add the current mag to the end of the exampleMags list, so that it will be repeated later
-                                yield return new WaitUntil(() => AnyContinueInput());
+                                instructionText.text = "Correct! This was an unstable trial.\nPress trackpad to continue.";
                             }
                         }
+                        // Reset input state and wait for explicit trackpad press
+                        touchpadPressed = false;
+                        fireLeftPressed = false;
+                        fireRightPressed = false;
+                        yield return new WaitForSeconds(0.3f); // brief debounce
+                        yield return new WaitUntil(() => AnyContinueInput());
                     }
                     break;
 
                 case 6: // Practice with random dots
-                        // deactivate the wall but keep the rest of the training GUI, so that the participant can see only the random dots with the current distortion, but still has the head movement targets as reference (Tolga)
                     hideTrainingWall = true;
 
-                    // Deactivating the plane (brick wall) (Tolga)
+                    // Deactivating the plane (brick wall)
                     Transform pTrans = trainingObj.transform.Find("Wall/Plane");
                     if (pTrans != null) pTrans.gameObject.SetActive(false);
 
-                    // Activating the FixationTarget (Tolga)
+                    // Show all UI elements for warm-up (FixationTarget, TargetLeft, TargetRight)
                     Transform fTrans = trainingObj.transform.Find("Wall/UI/FixationTarget");
                     if (fTrans != null) fTrans.gameObject.SetActive(true);
+                    if (hideTargetL != null) hideTargetL.gameObject.SetActive(true);
+                    if (hideTargetR != null) hideTargetR.gameObject.SetActive(true);
 
-                    yield return StartCoroutine(ResampleAndReproject()); // show the random dots with the current distortion (Tolga)
+                    // Reset target scales and colors
+                    if (trRef != null)
+                    {
+                        trRef.localScale = savedTargetScale;
+                        trRef.GetComponent<Renderer>().material.color = savedTargetColor;
+                    }
+                    if (tlRef != null)
+                    {
+                        tlRef.localScale = savedTargetScale;
+                        tlRef.GetComponent<Renderer>().material.color = savedTargetColor;
+                    }
 
-                    yield return StartCoroutine(MetronomeHeadMovement(4)); // let the participant practice head movements with the random dots and the metronome, to get used to the new visual input (Tolga)
+                    // Show dots but WITHOUT DotManager fixation target during warm-up
+                    // (GUI fixation target is already visible)
+                    dotManager.showFixationTarget = false;
+                    yield return StartCoroutine(ResampleAndReproject());
 
-                    exampleMags = new List<float> { 1.0f, 1.2f, 1.0f };//, 0.9f, 1.0f, 1.3f };
+                    // Warm-up: practice head movements with dots (full GUI visible)
+                    yield return StartCoroutine(TrainingHeadMovement(4));
+
+                    // Hide dots during instruction
+                    dotManager.active = false;
+
+                    // Instruction: now remove visualization, only fixation target remains
+                    instructionText.text = "Good! Now we remove the visualization.\nOnly the fixation target remains.\n\nYou will hear a beep at each head turn.\nAfter 4 turns, return to center and decide:\n\nTrigger = unstable, Trackpad = stable\n\n<b>Press trackpad to continue.<b>";
+
+                    // Play audio for this instruction
+                    if (dotTransitionClip != null)
+                    {
+                        beepSource.pitch = 1f;
+                        beepSource.PlayOneShot(dotTransitionClip);
+                    }
+                    // Hide ALL training UI elements for this instruction and the following trials
+                    if (hideTargetL != null) hideTargetL.gameObject.SetActive(false);
+                    if (hideTargetR != null) hideTargetR.gameObject.SetActive(false);
+                    if (hideFixation != null) hideFixation.gameObject.SetActive(false);
+                    if (hideBar != null) hideBar.gameObject.SetActive(false);
+                    if (hideHead != null) hideHead.gameObject.SetActive(false);
+
+                    touchpadPressed = false;
+                    yield return new WaitUntil(() => AnyContinueInput());
+                    beepSource.Stop(); // stop audio if still playing when participant continues
+
+                    // From now on: only dots + DotManager fixation target visible, no training UI
+                    dotManager.showFixationTarget = true;
+
+                    // Start example trials with dots
+                    exampleMags = new List<float> { 1.0f, 1.2f, 1.0f };
                     while (exampleMags.Count > 0)
                     {
                         float mag = exampleMags[0];
                         exampleMags.RemoveAt(0);
-                        camDistortions.magn = mag;
-                        yield return StartCoroutine(TrainingHeadMovement(4));
-                        camDistortions.magn = 1.0f;
+                        dotManager.distortionParam.x = mag;
+                        instructionText.text = ""; // clear instruction text before showing dots
+                        yield return StartCoroutine(ResampleAndReproject());
+                        yield return StartCoroutine(HeadMovement());
+                        dotManager.distortionParam.x = 1.0f;
 
-                        instructionText.text = "Press left if it felt unstable, right if it felt stable.";
+                        // remove dots while answering
+                        dotManager.active = false;
 
-                        yield return new WaitUntil(() =>
-                            Input.GetKeyDown(KeyCode.LeftArrow) ||
-                            Input.GetKeyDown(KeyCode.RightArrow));
+                        instructionText.text = "Trigger = unstable, Trackpad = stable";
+
+                        fireLeftPressed = false;
+                        fireRightPressed = false;
+                        touchpadPressed = false;
                         int ans = -1;
-                        if (Input.GetKeyDown(KeyCode.LeftArrow))
+                        yield return new WaitUntil(() =>
                         {
-                            ans = 0; // unstable
-                            Flash(colorLeft, flashDuration);
-                        }
-                        else if (Input.GetKeyDown(KeyCode.RightArrow))
-                        {
-                            ans = 1; // stable
-                            Flash(colorRight, flashDuration);
-                        }
+                            if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed || fireRightPressed)
+                            {
+                                ans = 0;
+                                return true;
+                            }
+                            if (Input.GetKeyDown(KeyCode.RightArrow) || touchpadPressed)
+                            {
+                                ans = 1;
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (ans == 0) Flash(colorLeft, flashDuration);
+                        else if (ans == 1) Flash(colorRight, flashDuration);
+
                         // 1. it was a stable trial
                         if (mag == 1.0f)
                         {
                             if (ans == 1)
                             {
-                                // correct
-                                instructionText.text = "Correct! This was a stable trial.\nPress space key to continue.";
-                                yield return new WaitUntil(() => AnyContinueInput());
-
+                                instructionText.text = "Correct! This was a stable trial.\nPress trackpad to continue.";
                             }
                             else
                             {
-                                instructionText.text = "Wrong! This was a stable trial.\nPress space key to continue.";
-                                // add the current mag to the end of the exampleMags list, so that it will be repeated later
+                                instructionText.text = "Wrong! This was a stable trial.\nPress trackpad to continue.";
                                 exampleMags.Add(mag);
-                                yield return new WaitUntil(() => AnyContinueInput());
                             }
                         }
                         // 2. it was an unstable trial
@@ -537,33 +644,29 @@ public class SwimTest : MonoBehaviour
                         {
                             if (ans == 1) // wrong
                             {
-                                instructionText.text = "Wrong! This was a unstable trial.\nPress space key to continue.";
+                                instructionText.text = "Wrong! This was an unstable trial.\nPress trackpad to continue.";
                                 exampleMags.Add(mag);
-                                yield return new WaitUntil(() => AnyContinueInput());
-
                             }
                             else // correct
                             {
-                                instructionText.text = "Correct! This was a unstable trial.\nPress space key to continue.";
-                                // add the current mag to the end of the exampleMags list, so that it will be repeated later
-                                yield return new WaitUntil(() => AnyContinueInput());
+                                instructionText.text = "Correct! This was an unstable trial.\nPress trackpad to continue.";
                             }
                         }
+                        // Reset input state and wait for explicit trackpad press
+                        touchpadPressed = false;
+                        fireLeftPressed = false;
+                        fireRightPressed = false;
+                        yield return new WaitForSeconds(0.3f); // brief debounce
+                        yield return new WaitUntil(() => AnyContinueInput());
                     }
-                    break;
-                case 7: // Practice without metronome
-                    yield return StartCoroutine(TrainingHeadMovement());
-                    break;
-                default:
-                    Debug.LogWarning("No training step defined for step " + step);
                     break;
 
             }
             touchpadPressed = false;
         }
 
-        //  training is completed (Tolga)
-        instructionText.text = "Great job! You have completed the head movement training.\nPress space/trackpad key to start the test.";
+        //  training is completed 
+        instructionText.text = "Great job! You have completed the head movement training.\nPress trackpad to start the test.";
         yield return new WaitUntil(() => AnyContinueInput());
         isTraining = false; // set training flag to false
 
@@ -973,16 +1076,16 @@ public class SwimTest : MonoBehaviour
             beepSource.Stop();
 
             // you can check which key was pressed or OnFire was called
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed)
-            {
-                ans = 0; // unstable perception (trigger)
-                Flash(colorLeft, flashDuration);
-            }
-            else if (Input.GetKeyDown(KeyCode.RightArrow) || fireRightPressed || touchpadPressed)
-            {
-                ans = 1; // stable perception (touchpad)
-                Flash(colorRight, flashDuration);
-            }
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed || fireRightPressed)
+                    {
+                        ans = 0; // unstable (trigger)
+                        Flash(colorLeft, flashDuration);
+                    }
+                    else if (Input.GetKeyDown(KeyCode.RightArrow) || touchpadPressed)
+                    {
+                        ans = 1; // stable (touchpad)
+                        Flash(colorRight, flashDuration);
+                    }
             else
             {
                 ans = 2; // no answer given
