@@ -394,69 +394,73 @@ public class EyeTrackingToolbox : MonoBehaviour
         return (datasetLine.ToString());
     }
 
+    // Reusable StringBuilder, allocated once instead of every frame (reduces garbage collection pauses).
+    private StringBuilder reusableStringBuilder = new StringBuilder(700);
+    // Explicit culture for number formatting, prevents any regional formatting issues (e.g. German commas vs. English dots).
+    private static readonly System.Globalization.CultureInfo invariantCulture = System.Globalization.CultureInfo.InvariantCulture;
+
     private void QueueTrackingData(Queue queue)
     {
-        // StringBuilder should be quite effiction: https://stackoverflow.com/questions/21078/most-efficient-way-to-concatenate-strings
-        StringBuilder datasetLine = new StringBuilder(700); // adjust capacity to your needs
+        // Reuse the same StringBuilder across frames to reduce pressure.
+        reusableStringBuilder.Clear();
 
         // timestamp: use time at beginning of frame
-        datasetLine.Append(Time.time.ToString("F10") + ",");
+        reusableStringBuilder.Append(Time.time.ToString("F10", invariantCulture)).Append(',');
 
-        // eye tracking timestampe
-        datasetLine.Append(currentGazeData.deviceTimestamp.ToString() + ",");
+        // eye tracking timestamp
+        reusableStringBuilder.Append(currentGazeData.deviceTimestamp).Append(',');
 
         foreach (TrackedObjectOptions trackedObject in trackedObjectList)
         {
-            if(trackedObject.gameObject == null)
+            if (trackedObject.gameObject == null)
             {
-                datasetLine.Append(",,,,,,,"); // add 7 empty cells, object seems to be missing
+                reusableStringBuilder.Append(",,,,,,,"); // add 7 empty cells, object seems to be missing
             }
             else
             {
-                switch (trackedObject.trackingOptions)
+                // Cache transform reference, accessing .transform repeatedly is slower than caching it.
+                Transform t = trackedObject.gameObject.transform;
+                Vector3 pos;
+                Quaternion rot;
+
+                if (trackedObject.trackingOptions == TrackingOptions.localTransform)
                 {
-                    case TrackingOptions.localTransform:
-                        datasetLine.Append(trackedObject.gameObject.transform.localPosition.x.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.localPosition.y.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.localPosition.z.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.x.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.y.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.z.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.localRotation.w.ToString("F10") + ",");
-                        break;
-                    case TrackingOptions.globalTransform:
-                        datasetLine.Append(trackedObject.gameObject.transform.position.x.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.position.y.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.position.z.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.rotation.x.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.rotation.y.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.rotation.z.ToString("F10") + ",");
-                        datasetLine.Append(trackedObject.gameObject.transform.rotation.w.ToString("F10") + ",");
-                        break;
-                    default:
-                        Debug.LogError("Unknown option selected for " + trackedObject.gameObject.name);
-                        break;
+                    pos = t.localPosition;
+                    rot = t.localRotation;
                 }
+                else // globalTransform
+                {
+                    pos = t.position;
+                    rot = t.rotation;
+                }
+
+                reusableStringBuilder.Append(pos.x.ToString("F10", invariantCulture)).Append(',');
+                reusableStringBuilder.Append(pos.y.ToString("F10", invariantCulture)).Append(',');
+                reusableStringBuilder.Append(pos.z.ToString("F10", invariantCulture)).Append(',');
+                reusableStringBuilder.Append(rot.x.ToString("F10", invariantCulture)).Append(',');
+                reusableStringBuilder.Append(rot.y.ToString("F10", invariantCulture)).Append(',');
+                reusableStringBuilder.Append(rot.z.ToString("F10", invariantCulture)).Append(',');
+                reusableStringBuilder.Append(rot.w.ToString("F10", invariantCulture)).Append(',');
             }
         }
 
         if (saveRaycastHitpoint)
         {
-            datasetLine.Append(GazeRaycast());
+            reusableStringBuilder.Append(GazeRaycast());
         }
 
-        // buffered message - always append the column (empty or with message)
-        // so that every row has the same number of fields (fixes CSV inconsistency)
+        // Buffered message, always append the column (empty or with message)
+        // so that every row has the same number of fields (fixes CSV inconsistency).
         if (!String.IsNullOrEmpty(msgBuffer))
         {
-            datasetLine.Append(msgBuffer + ",");
+            reusableStringBuilder.Append(msgBuffer).Append(',');
             msgBuffer = "";
         }
         else
         {
-            datasetLine.Append(","); // empty message cell to keep column count consistent
+            reusableStringBuilder.Append(','); // empty message cell to keep column count consistent
         }
-        queue.Enqueue(datasetLine.ToString());
+        queue.Enqueue(reusableStringBuilder.ToString());
     }
 
     public string GazeRaycast()
