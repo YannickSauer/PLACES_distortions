@@ -86,14 +86,17 @@ public class DisplayInformation : MonoBehaviour
         {
             if (adaptationTask.HasNextRound)
             {
-                // if at least one score in the list, show the high score
+                // if at least one score in the list, show last round and best score
                 if (adaptationTask.highScores.Count > 0)
                 {
-                    highScoreText.text = "High Score:\n" + GetHighScoreText() + "\nPress Trackpad to start next round.";
+                    float lastScore = adaptationTask.highScores[adaptationTask.highScores.Count - 1];
+                    float bestScore = Mathf.Max(adaptationTask.highScores.ToArray());
+
+                    highScoreText.text = "Last Round: " + lastScore + "\nBest Score: " + bestScore + "\n\nPress Trackpad to continue.";
                 }
                 else
                 {
-                    highScoreText.text = "Destory all green balloons!\nPress Trackpad to start.";
+                    highScoreText.text = "Destroy all green balloons!\nPress Trackpad to start.";
                 }
             }
             else
@@ -115,14 +118,48 @@ public class DisplayInformation : MonoBehaviour
         }
     }
 
+
+    //if needed we cen get back to this method with 5 best highscores
     private string GetHighScoreText()
     {
-        string text = "";
-        for (int i = 0; i < adaptationTask.highScores.Count; i++)
+        int total = adaptationTask.highScores.Count;
+
+        // If 5 or fewer rounds: simple single column (as before)
+        if (total <= 5)
         {
-            text += (i + 1) + ": " + adaptationTask.highScores[i] + "\n";
+            string text = "";
+            for (int i = 0; i < total; i++)
+            {
+                text += (i + 1) + ": " + adaptationTask.highScores[i] + "\n";
+            }
+            return text;
         }
-        return text;
+
+        // More than 5 rounds: split into two columns
+        // Left column holds the first half, right column the second half
+        int rowsPerColumn = Mathf.CeilToInt(total / 2f);
+        string combined = "";
+
+        for (int row = 0; row < rowsPerColumn; row++)
+        {
+            // Left column entry
+            string leftEntry = (row + 1) + ": " + adaptationTask.highScores[row];
+
+            // Pad the left entry to a fixed width so the right column lines up
+            leftEntry = leftEntry.PadRight(12);
+
+            // Right column entry (if it exists)
+            int rightIndex = row + rowsPerColumn;
+            string rightEntry = "";
+            if (rightIndex < total)
+            {
+                rightEntry = (rightIndex + 1) + ": " + adaptationTask.highScores[rightIndex];
+            }
+
+            combined += leftEntry + rightEntry + "\n";
+        }
+
+        return combined;
     }
 
     public static void UpdateInstructionText(string newText)
@@ -162,11 +199,11 @@ public class DisplayInformation : MonoBehaviour
                     bgObj = bgTransform.gameObject;
                 }
 
-                // Update size and position to match current text
-                Vector2 textSize = instructionText.GetRenderedValues(false);
+                // Update size and position to match current text (same logic as ShowTrainingBackground)
+                Bounds textBounds = instructionText.textBounds;
                 float padding = 1f;
-                bgObj.transform.localPosition = new Vector3(-0.3f, -0.8f, 0.01f);
-                bgObj.transform.localScale = new Vector3(textSize.x + padding, textSize.y + padding, 1f);
+                bgObj.transform.localPosition = new Vector3(textBounds.center.x, textBounds.center.y, 0.01f);
+                bgObj.transform.localScale = new Vector3(textBounds.size.x + padding, textBounds.size.y + padding, 1f);
                 bgObj.SetActive(true);
             }
         }

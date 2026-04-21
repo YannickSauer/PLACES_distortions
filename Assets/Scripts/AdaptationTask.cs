@@ -23,6 +23,7 @@ public class AdaptationTask : MonoBehaviour
     public int highPoints = 3;
 
     public float initBalloonSize = 0.001f;
+    public float initDistractorSize = 0.001f; // seperate initial size for blue/distractor balloons
     public float minGrowSpeed = 0.001f;
     public float maxGrowSpeed = 0.003f;
 
@@ -200,15 +201,9 @@ public class AdaptationTask : MonoBehaviour
             }
         // clear the list so no stale references remain
         balloons.Clear(); 
-        // save the score
+        // save the score in chronological order
         highScores.Add(score);
-        // sort the high scores
-        highScores.Sort((a, b) => b.CompareTo(a)); // sort in descending order
-        // keep only the top 5 scores
-        if (highScores.Count > 5)
-        {
-            highScores.RemoveRange(5, highScores.Count - 5);
-        }
+        
         // inRound was already set to false above
 
         OnRoundOver?.Invoke();
@@ -257,7 +252,8 @@ public class AdaptationTask : MonoBehaviour
 
         Balloon balloon = balloonObj.GetComponent<Balloon>();
         balloon.Initialize(groupId, balloonId, balloonColors[groupId]);
-        balloon.transform.localScale = new Vector3(initBalloonSize, initBalloonSize, initBalloonSize); // set initial size
+        float size = (groupId == 0) ? initBalloonSize : initDistractorSize;
+        balloon.transform.localScale = new Vector3(size, size, size); // set initial size based on group
         balloon.OnExplode += HandleBalloonExploded;
         balloon.OnPopped += HandleBalloonPopped;
 
@@ -270,7 +266,7 @@ public class AdaptationTask : MonoBehaviour
     private Vector3 FindNewPosition(Vector3 prevLocation)
     {
         Vector3 pos = Camera.main.transform.position;
-        int maxAttempts = 100; // to avoid infinite loop (Tolga)
+        int maxAttempts = 100; // to avoid infinite loop 
         int attempts = 0;
         while ((Vector3.Distance(pos, Camera.main.transform.position) < playerDistance || Vector3.Distance(pos, prevLocation) < prevSpawnDistance))
         {
@@ -303,17 +299,15 @@ public class AdaptationTask : MonoBehaviour
             GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
             // play the explosion particle system
             ParticleSystem explosionPS = explosion.GetComponent<ParticleSystem>();
+            // set the color of the explosion to the color of the balloon
+            ParticleSystem.MainModule main = explosionPS.main;
+            Color balloonColor = b.GetComponent<Renderer>().material.color;
+            balloonColor.a = 1f; 
+            main.startColor = balloonColor;
             explosionPS.Play();
             // destroy the explosion after 1 second
             Destroy(explosion, 1f);
         }
-
-        //Instantiate explosion effect at the balloon's position
-        // set the color of the explosion to the color of the balloon
-        //ParticleSystem.MainModule main = explosion.GetComponent<ParticleSystem>().main;
-        // play the particle system
-        //main.startColor = b.GetComponent<Renderer>().material.color;
-        //explosion.GetComponent<ParticleSystem>().Play();
 
         Debug.Log("Balloon exploded! Score: " + score);
         // start score animation
@@ -349,9 +343,11 @@ public class AdaptationTask : MonoBehaviour
             GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
             // play the explosion particle system
             ParticleSystem explosionPS = explosion.GetComponent<ParticleSystem>();
-            //ParticleSystem.MainModule ma = explosionPS.main;
-            //ma.startColor = b.GetComponent<Renderer>().material.color;
-
+            //set the color of the explosion to the color of the balloon
+            ParticleSystem.MainModule ma = explosionPS.main;
+            Color balloonColor = b.GetComponent<Renderer>().material.color;
+            balloonColor.a = 1f;
+            ma.startColor = balloonColor;
             explosionPS.Play();
             // destroy the explosion after 1 second
             Destroy(explosion, 1f);

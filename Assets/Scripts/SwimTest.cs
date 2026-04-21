@@ -57,14 +57,22 @@ public class SwimTest : MonoBehaviour
     public AudioClip dotTransitionClip;
     public AudioClip correctClip;
     public AudioClip wrongClip;
+    [Header("Stable/Unstable Feedback Audio")]
+    public AudioClip triggerTrackpadPromptClip; // "Trigger = unstable, Trackpad = stable"
+    public AudioClip correctStableClip; // "Correct! This was a stable trial"
+    public AudioClip correctUnstableClip; // "Correct! This was an unstable trial"
+    public AudioClip wrongStableClip; // "Wrong! This was a stable trial"
+    public AudioClip wrongUnstableClip; // "Wrong! This was an unstable trial"
     private float lastBeatNum = 0;
     private GameObject trainingObj;
     private GameObject directionArrow;
     private AudioSource metronomeMusic;
     private AudioSource beepSource;
+    private AudioSource lowBeepSource; // seperate source for the low-pitched "return to center" beep
     private ExperimentManager.AftereffectData trainingData;
     private bool isTraining; // flag to indicate if the training phase is active
     private Vector3 initHeadForward; // initial forward direction of the head
+    public static Vector3 initHeadPosition; // initial head position in world, used as an anchor for fixation target
     public event Action<string> OnNextTrainingStep;
     public static event Action OnTurnHead;
     private Coroutine lastRoutine = null;
@@ -77,6 +85,7 @@ public class SwimTest : MonoBehaviour
     }
     void OnEnable()
     {
+        OnTurnHead -= PlayBeep;
         OnTurnHead += PlayBeep;
     }
 
@@ -105,6 +114,10 @@ public class SwimTest : MonoBehaviour
         }
 
         beepSource = GetComponent<AudioSource>();
+        // Create a dedicated AudioSource for the low beep so the pitch is isolated 
+        lowBeepSource = gameObject.AddComponent<AudioSource>();
+        lowBeepSource.playOnAwake = false;
+        lowBeepSource.pitch = 0.8f;
 
         //scene = GameObject.Find("Scene"); // original code
         //scene.SetActive(false); // original code
@@ -227,21 +240,22 @@ public class SwimTest : MonoBehaviour
             scene.transform.position = headPosition;
             trainingObj.transform.position = headPosition;
 
-            // get current head direction and adjust the position of scene and traingObj childrean
-            Vector3 headForward = Camera.main.transform.forward;
-            headForward.y = 0; // Keep the GUI at head height
-            initHeadForward = headForward.normalized;
+            // "front" is always the fixed forward direction in the world (identical to recenter head direction)
+            // regardless of where the participiant is looking at the moment the scene changes (Tolga)
+            initHeadForward = Vector3.forward;
+
+            initHeadPosition = headPosition;
 
             // adjust scene (used for random dots simulation during actual swim test)
             // Wall (child of scene) is always at wallDistance in front of the head
             scene.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
-            scene.transform.rotation = Quaternion.LookRotation(headForward);
+            scene.transform.rotation = Quaternion.LookRotation(initHeadForward);
 
             StartCoroutine(ResampleAndReproject());
 
             // adjust trainigsObj (used for training phase)
             trainingObj.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
-            trainingObj.transform.rotation = Quaternion.LookRotation(headForward);
+            trainingObj.transform.rotation = Quaternion.LookRotation(initHeadForward);
 
         }
         else
@@ -328,19 +342,22 @@ public class SwimTest : MonoBehaviour
             if (scene != null) scene.transform.position = headPosition;
             trainingObj.transform.position = headPosition;
 
-            Vector3 headForward = Camera.main.transform.forward;
-            headForward.y = 0;
-            initHeadForward = headForward.normalized;
+            // "front" is always the fixed forward direction in the world (identical to recenter head direction)
+            // regardless of where the participiant is looking at the moment the scene changes (Tolga)
+            initHeadForward = Vector3.forward;
+
+            // head position as anker for fixation dot
+            initHeadPosition = headPosition;
 
             if (scene != null)
             {
                 scene.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
-                scene.transform.rotation = Quaternion.LookRotation(headForward);
+                scene.transform.rotation = Quaternion.LookRotation(initHeadForward);
                 scene.SetActive(false); // keep scene hidden
             }
 
             trainingObj.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
-            trainingObj.transform.rotation = Quaternion.LookRotation(headForward);
+            trainingObj.transform.rotation = Quaternion.LookRotation(initHeadForward);
         }
 
         dotManager.active = false; // make sure dots are still off after repositioning
@@ -374,11 +391,13 @@ public class SwimTest : MonoBehaviour
             Transform hideFixation = trainingObj.transform.Find("Wall/UI/FixationTarget");
             Transform hideBar = trainingObj.transform.Find("Wall/UI/Bar");
             Transform hideHead = trainingObj.transform.Find("Wall/UI/HeadIndicator");
+            Transform hidePlane = trainingObj.transform.Find("Wall/Plane"); // Brickwall 
             if (hideTargetL != null) hideTargetL.gameObject.SetActive(false);
             if (hideTargetR != null) hideTargetR.gameObject.SetActive(false);
             if (hideFixation != null) hideFixation.gameObject.SetActive(false);
             if (hideBar != null) hideBar.gameObject.SetActive(false);
             if (hideHead != null) hideHead.gameObject.SetActive(false);
+            if (hidePlane != null) hidePlane.gameObject.SetActive(false); // hiding brickwall when texts are shown
 
             // Play training audio if available for this step
             if (trainingAudioClips != null && step < trainingAudioClips.Count && trainingAudioClips[step] != null)
@@ -419,6 +438,8 @@ public class SwimTest : MonoBehaviour
                 if (hideBar != null) hideBar.gameObject.SetActive(true);
                 if (hideHead != null) hideHead.gameObject.SetActive(true);
             }
+            // Show brickwall again for head movement exercises (case 0-5)
+            if (step < 6 && hidePlane != null) hidePlane.gameObject.SetActive(true);
 
             // Reset target scales and colors
             if (trRef != null)
@@ -481,6 +502,16 @@ public class SwimTest : MonoBehaviour
 
                         instructionText.text = "Trigger = unstable, Trackpad = stable";
                         DisplayInformation.ShowTrainingBackground();
+                        if (triggerTrackpadPromptClip != null)
+                        {
+                            beepSource.pitch = 1f;
+                            beepSource.PlayOneShot(triggerTrackpadPromptClip);
+                        }
+                        // Hide brickwall and UI elements during feedback text (Tolga)
+                            if (hidePlane != null) hidePlane.gameObject.SetActive(false);
+                        if (hideTargetL != null) hideTargetL.gameObject.SetActive(false);
+                        if (hideTargetR != null) hideTargetR.gameObject.SetActive(false);
+                        if (hideFixation != null) hideFixation.gameObject.SetActive(false);
 
                         fireLeftPressed = false;
                         fireRightPressed = false;
@@ -503,6 +534,9 @@ public class SwimTest : MonoBehaviour
                         if (ans == 0) Flash(colorLeft, flashDuration);
                         else if (ans == 1) Flash(colorRight, flashDuration);
 
+                        // stop the audio if still playing
+                        beepSource.Stop();
+
                         // 1. it was a stable trial
                         if (mag == 1.0f)
                         {
@@ -510,10 +544,12 @@ public class SwimTest : MonoBehaviour
                             {
                                 // correct
                                 instructionText.text = "Correct! This was a stable trial.\nPress trackpad to continue.";
+                                if (correctStableClip != null) beepSource.PlayOneShot(correctStableClip);
                             }
                             else
                             {
                                 instructionText.text = "Wrong! This was a stable trial.\nPress trackpad to continue.";
+                                if (wrongStableClip != null) beepSource.PlayOneShot(wrongStableClip);
                                 // add the current mag to the end of the exampleMags list, so that it will be repeated later
                                 exampleMags.Add(mag);
                             }
@@ -524,11 +560,13 @@ public class SwimTest : MonoBehaviour
                             if (ans == 1) // wrong
                             {
                                 instructionText.text = "Wrong! This was an unstable trial.\nPress trackpad to continue.";
+                                if (wrongUnstableClip != null) beepSource.PlayOneShot(wrongUnstableClip);
                                 exampleMags.Add(mag);
                             }
                             else // correct
                             {
                                 instructionText.text = "Correct! This was an unstable trial.\nPress trackpad to continue.";
+                                if (correctUnstableClip != null) beepSource.PlayOneShot(correctUnstableClip);
                             }
                         }
                         DisplayInformation.ShowTrainingBackground(); // update background size for feedback text
@@ -538,6 +576,12 @@ public class SwimTest : MonoBehaviour
                         fireRightPressed = false;
                         yield return new WaitForSeconds(0.3f); // brief debounce
                         yield return new WaitUntil(() => AnyContinueInput());
+                        beepSource.Stop(); // stop audio if still playing
+                        // Show brickwall and UI elements again for next exercise trial 
+                        if (hidePlane != null) hidePlane.gameObject.SetActive(true);
+                        if (hideTargetL != null) hideTargetL.gameObject.SetActive(true);
+                        if (hideTargetR != null) hideTargetR.gameObject.SetActive(true);
+                        if (hideFixation != null) hideFixation.gameObject.SetActive(true);
                     }
                     break;
 
@@ -621,6 +665,11 @@ public class SwimTest : MonoBehaviour
 
                         instructionText.text = "Trigger = unstable, Trackpad = stable";
                         DisplayInformation.ShowTrainingBackground();
+                        if (triggerTrackpadPromptClip != null)
+                        {
+                            beepSource.pitch = 1f;
+                            beepSource.PlayOneShot(triggerTrackpadPromptClip);
+                        }
 
                         fireLeftPressed = false;
                         fireRightPressed = false;
@@ -643,16 +692,21 @@ public class SwimTest : MonoBehaviour
                         if (ans == 0) Flash(colorLeft, flashDuration);
                         else if (ans == 1) Flash(colorRight, flashDuration);
 
+                        // stop the audio if still playing
+                        beepSource.Stop();
+
                         // 1. it was a stable trial
                         if (mag == 1.0f)
                         {
                             if (ans == 1)
                             {
                                 instructionText.text = "Correct! This was a stable trial.\nPress trackpad to continue.";
+                                if (correctStableClip != null) beepSource.PlayOneShot(correctStableClip);
                             }
                             else
                             {
                                 instructionText.text = "Wrong! This was a stable trial.\nPress trackpad to continue.";
+                                if (wrongStableClip != null) beepSource.PlayOneShot(wrongStableClip);
                                 exampleMags.Add(mag);
                             }
                         }
@@ -662,11 +716,13 @@ public class SwimTest : MonoBehaviour
                             if (ans == 1) // wrong
                             {
                                 instructionText.text = "Wrong! This was an unstable trial.\nPress trackpad to continue.";
+                                if (wrongUnstableClip != null) beepSource.PlayOneShot(wrongUnstableClip);
                                 exampleMags.Add(mag);
                             }
                             else // correct
                             {
                                 instructionText.text = "Correct! This was an unstable trial.\nPress trackpad to continue.";
+                                if (correctUnstableClip != null) beepSource.PlayOneShot(correctUnstableClip);
                             }
                         }
                         DisplayInformation.ShowTrainingBackground(); // update background size for feedback text
@@ -676,6 +732,7 @@ public class SwimTest : MonoBehaviour
                         fireRightPressed = false;
                         yield return new WaitForSeconds(0.3f); // brief debounce
                         yield return new WaitUntil(() => AnyContinueInput());
+                        beepSource.Stop(); // stop the audio if still playing
                     }
                     break;
 
@@ -758,10 +815,13 @@ public class SwimTest : MonoBehaviour
         // save initial rotation and position of the camera
         initialRotation = Camera.main.transform.rotation;
 
+        // wait until head is close to center before starting, so that a turn already in progress
+        // doesn't get counted as the first reversal. 
+        yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) < centerThreshold);
+
         // wait for full head rotation left or right
         yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) > headRotationThreshold);
         OnTurnHead?.Invoke();
-
         if (GetYawRotation() > 0f) // initial rotation is to the right
         {
             // wait for head to rotate left
@@ -790,8 +850,8 @@ public class SwimTest : MonoBehaviour
 
         // Wait for head to return to center
         yield return new WaitUntil(() => Mathf.Abs(GetYawRotation()) < centerThreshold);
-        // Play a beep sound to indicate the end of the head movement
-        PlayBeep(0.8f);
+        // Play the low-pitched beep via a separate AudioSource (isolated pitch) (Tolga)
+        lowBeepSource.PlayOneShot(beepClip);
     }
 
     private void MetronomeStart()
@@ -902,7 +962,8 @@ public class SwimTest : MonoBehaviour
         }
         MetronomeStop();
 
-        // Feedback-Beep turning on again after metronome is stopped (Tolga)
+        // Feedback-Beep turning on again after metronome is stopped 
+        OnTurnHead -= PlayBeep; 
         OnTurnHead += PlayBeep;
     }
 
@@ -975,8 +1036,9 @@ public class SwimTest : MonoBehaviour
     public IEnumerator ResampleAndReproject()
     {
         scene.SetActive(true);
-        // rotate Scene in horizontal direction of camera
-        scene.transform.rotation = Quaternion.Euler(0, Camera.main.transform.rotation.eulerAngles.y, 0);
+        // scene always remains aligned along the fixed "forward" direction,
+        // not along the current viewing direction
+        scene.transform.rotation = Quaternion.identity;
         // scale scene to keep perceived distance independent of magnification
         AdjustForMagnification();
         yield return null; // wait for one frame, so that the new scene transform applies 
@@ -986,7 +1048,8 @@ public class SwimTest : MonoBehaviour
         dotManager.Reproject();
         scene.SetActive(false);
     }
-
+    
+    
     public IEnumerator RunTest(int nTrialsBlock = -1) // run a block of nTrialsBlock Trials. If 
     {
         isTestRunning = true;
@@ -1010,8 +1073,9 @@ public class SwimTest : MonoBehaviour
 
         // Position scene and training objects correctly, but don't activate scene yet (Tolga)
         // (ResampleAndReproject will activate the scene when needed)
-        
+
         // Make sure fixation target dot is enabled
+        // dotManager.showFixationTarget = true;
         dotManager.showFixationTarget = true;
 
         if (Camera.main != null && scene != null)
@@ -1020,17 +1084,21 @@ public class SwimTest : MonoBehaviour
             scene.transform.position = headPosition;
             trainingObj.transform.position = headPosition;
 
-            Vector3 headForward = Camera.main.transform.forward;
-            headForward.y = 0; // Keep the GUI at head height
-            initHeadForward = headForward.normalized;
+            // "front" is always the fixed forward direction in the world (identical to recenter head direction)
+            // regardless of where the participiant is looking at the moment the scene changes
+            initHeadForward = Vector3.forward;
+
+            // save the head position
+            // participiant is in recenter-head position
+            initHeadPosition = headPosition;
 
             scene.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
-            scene.transform.rotation = Quaternion.LookRotation(headForward);
+            scene.transform.rotation = Quaternion.LookRotation(initHeadForward);
 
             trainingObj.transform.Find("Wall").transform.localPosition = new Vector3(0f, 0f, wallDistance);
-            trainingObj.transform.rotation = Quaternion.LookRotation(headForward);
+            trainingObj.transform.rotation = Quaternion.LookRotation(initHeadForward);
         }
-        
+
         // Instruction text instead of sample text (Tolga)
         DisplayInformation.UpdateInstructionText("Phase 1: Assess Motion Stability");
 
@@ -1044,7 +1112,7 @@ public class SwimTest : MonoBehaviour
         yield return new WaitForSeconds(2f);
 
         // beep to indicate the start of the test (different pitch than the feedback beep during training, to avoid confusion (Tolga))
-        PlayBeep(0.6f);
+        PlayBeep(0.5f);
         // wait for ISI before starting the test
         yield return new WaitForSeconds(startWaitTime);
 
@@ -1065,7 +1133,8 @@ public class SwimTest : MonoBehaviour
 
             if (eyeTracker != null)
             {
-                eyeTracker.WriteMessage("StartTestTrial" + aftereffectData.currentTrial);
+                string phase = (expManager != null && expManager.adaptationPhaseData.distorted) ? "aftereffect" : "baseline";
+                eyeTracker.WriteMessage("StartTrial_" + phase + "_t" + aftereffectData.currentTrial + "_mag" + magnification + "_rad" + radial);
             }
             // save initial rotation of the camera
 
@@ -1074,7 +1143,8 @@ public class SwimTest : MonoBehaviour
 
             if (eyeTracker != null)
             {
-                eyeTracker.WriteMessage("StopTestTrial" + aftereffectData.currentTrial);
+                string phase = (expManager != null && expManager.adaptationPhaseData.distorted) ? "aftereffect" : "baseline";
+                eyeTracker.WriteMessage("StopTrial_" + phase + "_t" + aftereffectData.currentTrial);
             }
 
             // remove the random dots
@@ -1104,15 +1174,15 @@ public class SwimTest : MonoBehaviour
 
             // you can check which key was pressed or OnFire was called
             if (Input.GetKeyDown(KeyCode.LeftArrow) || fireLeftPressed || fireRightPressed)
-                    {
-                        ans = 0; // unstable (trigger)
-                        Flash(colorLeft, flashDuration);
-                    }
-                    else if (Input.GetKeyDown(KeyCode.RightArrow) || touchpadPressed)
-                    {
-                        ans = 1; // stable (touchpad)
-                        Flash(colorRight, flashDuration);
-                    }
+            {
+                ans = 0; // unstable (trigger)
+                Flash(colorLeft, flashDuration);
+            }
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || touchpadPressed)
+            {
+                ans = 1; // stable (touchpad)
+                Flash(colorRight, flashDuration);
+            }
             else
             {
                 ans = 2; // no answer given
@@ -1132,6 +1202,9 @@ public class SwimTest : MonoBehaviour
 
             aftereffectData.currentTrial++;
         }
+
+        // beep to indicate the end of the test block (same pitch as the start)
+        PlayBeep(0.5f);
 
         // brief pause before automatic scene switch
         yield return new WaitForSeconds(1f);

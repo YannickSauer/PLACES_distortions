@@ -2,5 +2,4 @@ You will learn to move your head in a rythmic way.
 Move your head to the left and right in the rythm of the metronome.
 Try to hit the spheres at the right time.
 
-
 <b>Press the trackpad to start.</b>

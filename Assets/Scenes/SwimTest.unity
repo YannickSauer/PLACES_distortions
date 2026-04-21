@@ -483,6 +483,11 @@ MonoBehaviour:
   dotTransitionClip: {fileID: 8300000, guid: 8cf6829b4f43a9b45a55e11cf9c2c317, type: 3}
   correctClip: {fileID: 8300000, guid: 6e28a89114f794a4099c855952ab466e, type: 3}
   wrongClip: {fileID: 8300000, guid: dd3636138a0c2894d9da67a2ce2e9873, type: 3}
+  triggerTrackpadPromptClip: {fileID: 8300000, guid: 02479af3ad8a26f418c8ea670307cb2f, type: 3}
+  correctStableClip: {fileID: 8300000, guid: 82bbf516887b061448adf1b4adda570e, type: 3}
+  correctUnstableClip: {fileID: 8300000, guid: 3eed2fb1f63ea0141b1470776ce6d8a1, type: 3}
+  wrongStableClip: {fileID: 8300000, guid: 1dfc58970387cde49a151f9e88f8f629, type: 3}
+  wrongUnstableClip: {fileID: 8300000, guid: 12a8c4d9627d82840b1f3a5ed5542c1d, type: 3}
 --- !u!4 &807878717
 Transform:
   m_ObjectHideFlags: 0

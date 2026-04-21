@@ -1,7 +1,7 @@
 Great work!
 Let's make it a bit harder. 
 We will remove the visualization.
-Still move your head in the same way while looking at the target in the center.
-
+Still move your head in the same way 
+while looking at the target in the center.
 
 <b>Press the trackpad to start.</b>

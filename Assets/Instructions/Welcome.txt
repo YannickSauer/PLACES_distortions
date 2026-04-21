@@ -1,6 +1,7 @@
-<b>Welcome to the Adaptation Experiment!</b>
+<b>Welcome to the Visual Motion Study!</b>
 
-You're helping us study how the visual system adapts. We'll collect eye-tracking data and brief responses while you play a balloon-shooting game and complete short movement tests.
+You're helping us study how vision and head movement work together. 
+We'll collect eye-tracking data and brief responses while you play a balloon-shooting game and complete short movement tests.
 
 Please read all instructions carefully.
 

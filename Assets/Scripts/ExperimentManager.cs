@@ -265,9 +265,13 @@ public class ExperimentManager : MonoBehaviour
                 yield break; // Stop execution if the object isn't found
             }
             yield return testManagerObject.GetComponent<RecenterHead>().RunRecenter();
+            eyeTracker?.WriteMessage("StartSwimBlock_baseline_round" + roundCounter);
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+            eyeTracker?.WriteMessage("StopSwimBlock_baseline_round" + roundCounter);
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, roundCounter)); // adaptation phase for topUpDuration seconds
+            eyeTracker?.WriteMessage("StartTopUp_baseline_round" + roundCounter);
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0)); // adaptation phase for topUpDuration seconds
+            eyeTracker?.WriteMessage("StopTopUp_baseline_round" + roundCounter);
             roundCounter++;
         }
         eyeTracker?.StopRecording();
@@ -323,11 +327,15 @@ public class ExperimentManager : MonoBehaviour
             yield return testManagerObject.GetComponent<RecenterHead>().RunRecenter();
             adaptationPhaseData.inAdaptationPhase = false;
             distortions.active = false;
+            eyeTracker?.WriteMessage("StartSwimBlock_aftereffect_round" + roundCounter);
             yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+            eyeTracker?.WriteMessage("StopSwimBlock_aftereffect_round" + roundCounter);
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
             // return to adaptation scene for top-up with distortions
             distortions.active = true;
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, roundCounter)); // adaptation phase for topUpDuration seconds
+            eyeTracker?.WriteMessage("StartTopUp_aftereffect_round" + roundCounter);
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0)); // adaptation phase for topUpDuration seconds
+            eyeTracker?.WriteMessage("StopTopUp_aftereffect_round" + roundCounter);
             roundCounter++;
         }
         eyeTracker?.StopRecording();
@@ -404,19 +412,9 @@ public class ExperimentManager : MonoBehaviour
         else
         {
             testManager.roundCounter = roundCounter;
-            // Change round info according adaptation or top up phase
-            if (adaptationPhaseData.inAdaptationPhase)
-            {
-                testManager.canPlayAgain = true;
-                testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
-            }
-            else
-            {
-                testManager.canPlayAgain = false;
-                testManager.totalRounds = Mathf.FloorToInt(aftereffectData.nTrials / aftereffectSettings.topupFrequency);
-                Debug.Log(aftereffectData.nTrials + " /" + aftereffectSettings.topupFrequency + " = " + testManager.totalRounds);
-                testManager.roundTime = adaptationDuration;
-            }
+            testManager.canPlayAgain = true;
+            testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
+            Debug.Log("Balloon phase: " + adaptationDuration + "s / " + testManager.roundTime + "s = " + testManager.totalRounds + " rounds");
         }
         testManager.isDone = false;
         testManager.StartGame();

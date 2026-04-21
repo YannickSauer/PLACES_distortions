@@ -218,19 +218,21 @@ public class DotManager : MonoBehaviour
         for (int i = 0; i < dots.Length; i++)
         {   
             RaycastHit hit;
-            // dots can be projected in camera direction or always in z direction
-            // consider horizontal component of camera direction:
-            Quaternion horizontalCamOrientation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
-            Ray rayFromDot = new Ray(transform.position, horizontalCamOrientation * new Vector3(dots[i].x,dots[i].y,1)); // assumes this component to be attached to camera already
-            // alternatively, relative to z-direction (=forward) in world coordinates:
-            //Ray rayFromDot = new Ray(transform.position, new Vector3(dots[i].x,dots[i].y,1));
+            // Projection along the fixed world forward direction (z-axis), 
+            // regardless of the current viewing direction. This way, the dots always appear in front
+            // where the Recenter Head crosshair was. 
+            Ray rayFromDot = new Ray(transform.position, new Vector3(dots[i].x,dots[i].y,1));
             if (Physics.Raycast(rayFromDot, out hit))
             {
                 // add 4th value to indicate color (white or black)
                 dots4d[i] = new Vector4(hit.point.x, hit.point.y, hit.point.z, Random.Range(0f,0.66f)); // 0 to 0.33 is white, 0.33 to 0.66 is black
                 if ((i==dots.Length-1) && (showFixationTarget))
                 {
-                    dots4d[i] = new Vector4(hit.point.x, hit.point.y, hit.point.z, 1.0f); // center point as fixation target
+                    // special case: The fixation dot is always set to the initial head position + world-forward * wallDistance 
+                    //. This is exactly where the crosshair was when the head was centered. 
+                    // This ensures that the fixation dot is always exactly between the triggers
+                    Vector3 fixationWorldPos = SwimTest.initHeadPosition + Vector3.forward * 4f; // 4f = wallDistance
+                    dots4d[i] = new Vector4(fixationWorldPos.x, fixationWorldPos.y, fixationWorldPos.z, 1.0f);
                 }
             }
         }
@@ -252,19 +254,8 @@ public class DotManager : MonoBehaviour
         Vector3[] pos = RandomDots(nDots);
         Vector2[] invPos = InverseDistortion(pos);
         Vector4[] projectedPos = ProjectOnScene(invPos);
-
-        // Fix fixation target position: project straight ahead from camera onto scene
-        if (showFixationTarget)
-        {
-            Quaternion horizontalCamOrientation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
-            Ray centerRay = new Ray(transform.position, horizontalCamOrientation * Vector3.forward);
-            RaycastHit hit;
-            if (Physics.Raycast(centerRay, out hit))
-            {
-                projectedPos[projectedPos.Length - 1] = new Vector4(hit.point.x, hit.point.y, hit.point.z, 1.0f);
-            }
-        }
-
+        // Fixation-Dot is positioned using the standard ProjectOnScene path (at world front),
+        // no longer requires an additional camera-relative raycast. 
         dotPositions = projectedPos;
         positionBuffer.SetData(dotPositions);
     }
@@ -287,19 +278,8 @@ public class DotManager : MonoBehaviour
     {
         Vector2[] invPos = InverseDistortion(initDots);
         Vector4[] projectedPos = ProjectOnScene(invPos);
-
-        // Fix fixation target position: project straight ahead from camera onto scene
-        if (showFixationTarget)
-        {
-            Quaternion horizontalCamOrientation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
-            Ray centerRay = new Ray(transform.position, horizontalCamOrientation * Vector3.forward);
-            RaycastHit hit;
-            if (Physics.Raycast(centerRay, out hit))
-            {
-                projectedPos[projectedPos.Length - 1] = new Vector4(hit.point.x, hit.point.y, hit.point.z, 1.0f);
-            }
-        }
-
+        // Fixation-Dot is positioned using the standard ProjectOnScene path (at world front),
+        // no longer requires an additional camera-relative raycast
         positionBuffer.SetData(projectedPos);
     }
 

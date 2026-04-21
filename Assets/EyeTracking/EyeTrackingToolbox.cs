@@ -445,11 +445,16 @@ public class EyeTrackingToolbox : MonoBehaviour
             datasetLine.Append(GazeRaycast());
         }
 
-        // buffered message
+        // buffered message - always append the column (empty or with message)
+        // so that every row has the same number of fields (fixes CSV inconsistency)
         if (!String.IsNullOrEmpty(msgBuffer))
         {
             datasetLine.Append(msgBuffer + ",");
             msgBuffer = "";
+        }
+        else
+        {
+            datasetLine.Append(","); // empty message cell to keep column count consistent
         }
         queue.Enqueue(datasetLine.ToString());
     }

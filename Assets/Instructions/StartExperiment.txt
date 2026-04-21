@@ -1,8 +1,7 @@
+
+
 Welcome to the experiment!
-
-The experiment consists of 3 phases.
-Each phase includes rounds of a balloon shooting game (~45 sec each) and motion assessment tests.
-
-Estimated duration: ~45 minutes.
+Throughout the experiment, you will switch between 
+a balloon shooting game and brief head movement tests.
 
 <b>Press trackpad to start.</b>
