@@ -41,7 +41,7 @@ public class ExperimentManager : MonoBehaviour
     {
         public int currentTrial; // current trial number
         public int nTrials; // number of trials for the aftereffect phase
-        public float[] magnificationTrial; // 
+        public float[] magnificationTrial; 
         public float[] radialTrial;
         public int[] answerTrial;
 
@@ -91,7 +91,7 @@ public class ExperimentManager : MonoBehaviour
     public string startExpTextPath = "./Instructions/StartExperiment.txt";
     public string adaptTextPath = "./Instructions/AdaptationPhase.txt";
     private bool isRunning = false;
-    private bool buttonPressed = false; 
+    private bool buttonPressed = false;
     private Distortions distortions;
     private EyeTrackingToolbox eyeTracker;
 
@@ -176,43 +176,21 @@ public class ExperimentManager : MonoBehaviour
         // after training, start the real experiment (Tolga)
         Debug.Log("Training completed. Starting experiment...");
         yield return StartCoroutine(RunExperiment());
-
-        //isRunning = false;
     }
 
     private IEnumerator BalloonGameTraining()
     {
-        // Switch to adaptation scene
         yield return StartCoroutine(SwitchScene(adaptationPhaseSettings.sceneName));
-
-        // Find Test Manager 
-        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
-        if (testManagerObject == null)
-        {
-            Debug.LogError("SceneTestManager tagged object not found!");
-            yield break; // Stop execution if the object isn't found
-        }
-
-        AdaptationTask testManager = testManagerObject.GetComponent<AdaptationTask>();
-
+        AdaptationTask testManager = GetSceneTestManager<AdaptationTask>();
+        if (testManager == null) yield break;
         yield return StartCoroutine(testManager.RunTraining());
     }
 
     private IEnumerator HeadMovementTraining()
     {
-        // Switch to swim test scene
         yield return StartCoroutine(SwitchScene(aftereffectSettings.sceneName));
-
-        // Find Test Manager 
-        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
-        if (testManagerObject == null)
-        {
-            Debug.LogError("SceneTestManager tagged object not found!");
-            yield break; // Stop execution if the object isn't found
-        }
-
-        SwimTest testManager = testManagerObject.GetComponent<SwimTest>();
-
+        SwimTest testManager = GetSceneTestManager<SwimTest>();
+        if (testManager == null) yield break;
         yield return StartCoroutine(testManager.RunTraining());
     }
 
@@ -248,8 +226,6 @@ public class ExperimentManager : MonoBehaviour
         eyeTracker?.StartRecording("preBaseline");
         yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.preBaselineDuration, 0)); // adaptation phase without distortions
         eyeTracker?.StopRecording();
-        //yield return StartCoroutine(VORTestPhase(baselineTrials,false)); // baseline trials with target
-        //yield return StartCoroutine(VORTestPhase(aftereffectTestTrials,true)); // baseline trials without target (VOR in the dark)
 
         // //  SWIM EFFECT SCENE // //
         // switch to swim scene and run topupFrequency trials without distortions as baseline measurement for the swim effect
@@ -257,20 +233,15 @@ public class ExperimentManager : MonoBehaviour
         int roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
-            // Find the GameObject that contains the script responsible for the coroutine
-            GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
-            if (testManagerObject == null)
-            {
-                Debug.LogError("SceneTestManager tagged object not found!");
-                yield break; // Stop execution if the object isn't found
-            }
-            yield return testManagerObject.GetComponent<RecenterHead>().RunRecenter();
+            RecenterHead recenter = GetSceneTestManager<RecenterHead>();
+            if (recenter == null) yield break;
+            yield return recenter.RunRecenter();
             eyeTracker?.WriteMessage("StartSwimBlock_baseline_round" + roundCounter);
-            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency));
             eyeTracker?.WriteMessage("StopSwimBlock_baseline_round" + roundCounter);
-            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
+            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break;
             eyeTracker?.WriteMessage("StartTopUp_baseline_round" + roundCounter);
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0)); // adaptation phase for topUpDuration seconds
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0));
             eyeTracker?.WriteMessage("StopTopUp_baseline_round" + roundCounter);
             roundCounter++;
         }
@@ -282,7 +253,7 @@ public class ExperimentManager : MonoBehaviour
 
         // Switch to adaptation scene first, so InstructionText is available
         yield return StartCoroutine(SwitchScene(adaptationPhaseSettings.sceneName));
-        
+
         string adaptTextFullPath = Path.Combine(Application.dataPath, adaptTextPath);
         string adaptationText = DisplayInformation.ReadText(adaptTextFullPath);
         DisplayInformation.UpdateInstructionText(adaptationText);
@@ -304,7 +275,6 @@ public class ExperimentManager : MonoBehaviour
         eyeTracker?.StartRecording("adaptation");
         yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.adaptationDuration, 0)); // adaptation phase with distortions
         eyeTracker?.StopRecording();
-        //distortions.active = false;
 
         ///////////////////////
         // Aftereffect phase //
@@ -317,24 +287,19 @@ public class ExperimentManager : MonoBehaviour
         roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
-            // Find the GameObject that contains the script responsible for the coroutine
-            GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
-            if (testManagerObject == null)
-            {
-                Debug.LogError("SceneTestManager tagged object not found!");
-                yield break; // Stop execution if the object isn't found
-            }
-            yield return testManagerObject.GetComponent<RecenterHead>().RunRecenter();
+            RecenterHead recenter = GetSceneTestManager<RecenterHead>();
+            if (recenter == null) yield break;
+            yield return recenter.RunRecenter();
             adaptationPhaseData.inAdaptationPhase = false;
             distortions.active = false;
             eyeTracker?.WriteMessage("StartSwimBlock_aftereffect_round" + roundCounter);
-            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency)); // do a few trials in the sway scene
+            yield return StartCoroutine(SwimTestPhase(aftereffectSettings.topupFrequency));
             eyeTracker?.WriteMessage("StopSwimBlock_aftereffect_round" + roundCounter);
-            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break; // check if we are done with the trials
+            if (aftereffectData.currentTrial >= aftereffectData.nTrials) break;
             // return to adaptation scene for top-up with distortions
             distortions.active = true;
             eyeTracker?.WriteMessage("StartTopUp_aftereffect_round" + roundCounter);
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0)); // adaptation phase for topUpDuration seconds
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0));
             eyeTracker?.WriteMessage("StopTopUp_aftereffect_round" + roundCounter);
             roundCounter++;
         }
@@ -356,12 +321,12 @@ public class ExperimentManager : MonoBehaviour
         DisplayInformation.UpdateInstructionText("hide");
 
         yield return new WaitForSeconds(1);
-        
-        #if UNITY_EDITOR
+
+#if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false; // stop play mode in the editor
-        #else
+#else
         Application.Quit(); // quit the application
-        #endif
+#endif
     }
 
     private IEnumerator AdaptationPhase(float adaptationDuration, int roundCounter)
@@ -381,71 +346,22 @@ public class ExperimentManager : MonoBehaviour
         if (dotScene != null)
         {
             dotScene.SetActive(false);
-        }  
-      
+        }
+
         // turn distortions on if adaptationPhaseData shows so
-        if (adaptationPhaseData.distorted)
-        {
-            distortions.active = true;
-        }
-        else
-        {
-            distortions.active = false;
-        }
+        distortions.active = adaptationPhaseData.distorted;
 
-        // Find the GameObject that contains the script responsible for the coroutine
-        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+        AdaptationTask testManager = GetSceneTestManager<AdaptationTask>();
+        if (testManager == null) yield break;
 
-        if (testManagerObject == null)
-        {
-            Debug.LogError("SceneTestManager tagged object not found!");
-            yield break; // Stop execution if the object isn't found
-        }
+        testManager.roundCounter = roundCounter;
+        testManager.canPlayAgain = true;
+        testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
+        Debug.Log("Balloon phase: " + adaptationDuration + "s / " + testManager.roundTime + "s = " + testManager.totalRounds + " rounds");
 
-        AdaptationTask testManager = testManagerObject.GetComponent<AdaptationTask>();
-
-        if (testManager == null)
-        {
-            Debug.LogError("AdaptationTask script not found on the object!");
-
-        }
-        else
-        {
-            testManager.roundCounter = roundCounter;
-            testManager.canPlayAgain = true;
-            testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
-            Debug.Log("Balloon phase: " + adaptationDuration + "s / " + testManager.roundTime + "s = " + testManager.totalRounds + " rounds");
-        }
         testManager.isDone = false;
         testManager.StartGame();
         yield return new WaitUntil(() => testManager.isDone);
-    }
-
-    private IEnumerator VORTestPhase(int nTrials, bool invisibleTarget)
-    {
-        yield return StartCoroutine(SwitchScene(aftereffectSettings.sceneName)); // TODO, this is a new scene
-
-        // TODO: add distortions here, if needed
-
-        // Find the GameObject that contains the script responsible for the coroutine
-        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
-
-        if (testManagerObject == null)
-        {
-            Debug.LogError("SceneTestManager tagged object not found!");
-            yield break; // Stop execution if the object isn't found
-        }
-
-        VORTest testManager = testManagerObject.GetComponent<VORTest>();
-
-        if (testManager == null)
-        {
-            Debug.LogError("VORTest script not found on the object!");
-            yield break;
-        }
-
-        // Start the test coroutine and yield return it to wait for it to finish
-        yield return StartCoroutine(testManager.RunTest(nTrials, invisibleTarget));
     }
 
     private IEnumerator SwimTestPhase(int ntrials = -1)
@@ -455,32 +371,13 @@ public class ExperimentManager : MonoBehaviour
         // set distortions off, always, because we use the random dot simulation
         distortions.active = false;
 
-        // Find the GameObject that contains the script responsible for the coroutine
-        GameObject testManagerObject = GameObject.FindWithTag("SceneTestManager");
+        SwimTest testManager = GetSceneTestManager<SwimTest>();
+        if (testManager == null) yield break;
 
-        if (testManagerObject == null)
-        {
-            Debug.LogError("SceneTestManager tagged object not found!");
-            yield break; // Stop execution if the object isn't found
-        }
-
-        SwimTest testManager = testManagerObject.GetComponent<SwimTest>();
-
-        if (testManager == null)
-        {
-            Debug.LogError("VORTest script not found on the object!");
-            yield break;
-        }
-
-        // Start the test coroutine and wait for it to finish
-        if (ntrials == -1) // if no number of trials is given, call without a number of trials
-        {
+        if (ntrials == -1)
             yield return StartCoroutine(testManager.RunTest());
-        }
-        else // if a number of trials is given, run that number of trials
-        {
+        else
             yield return StartCoroutine(testManager.RunTest(ntrials));
-        }
     }
 
     private IEnumerator SwitchScene(string sceneName)
@@ -489,8 +386,27 @@ public class ExperimentManager : MonoBehaviour
         // Wait until the scene is fully loaded before proceeding
         yield return new WaitUntil(() => SceneManager.GetActiveScene().name == sceneName);
     }
+
     private void OnTouchpad() // called by the touchpad of the controller
     {
         buttonPressed = true;
+    }
+
+    // Helper to find and retrieve a component from the SceneTestManager-tagged GameObject.
+    // Logs errors if the object or component are missing and returns null.
+    private T GetSceneTestManager<T>() where T : Component
+    {
+        GameObject obj = GameObject.FindWithTag("SceneTestManager");
+        if (obj == null)
+        {
+            Debug.LogError("SceneTestManager tagged object not found!");
+            return null;
+        }
+        T component = obj.GetComponent<T>();
+        if (component == null)
+        {
+            Debug.LogError($"{typeof(T).Name} script not found on the SceneTestManager object!");
+        }
+        return component;
     }
 }
