@@ -569,6 +569,37 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: ef9fa7e3247b0634c9dd0a894f36445b, type: 3}
+--- !u!1 &312643423
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 312643424}
+  m_Layer: 0
+  m_Name: Muzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &312643424
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 312643423}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.38268343, y: 0, z: 0, w: 0.92387956}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 872012321}
+  m_LocalEulerAnglesHint: {x: 45, y: 0, z: 0}
 --- !u!1 &320149199
 GameObject:
   m_ObjectHideFlags: 0
@@ -1480,7 +1511,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94da9119c5b59fd4ebdce7b47e9a3b63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  etprovider: 1
+  etprovider: 0
   calibrateKey: 99
   saveRaycastHitpoint: 0
   trackedObjectList:
@@ -1619,6 +1650,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 899fe849e99b24141b0dddd4e2f2a5a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  muzzle: {fileID: 312643424}
   hitDotPrefab: {fileID: 717520334779577734, guid: ced0e5182c189e44dbeb836802b559be, type: 3}
 --- !u!4 &872012321
 Transform:
@@ -1635,6 +1667,7 @@ Transform:
   m_Children:
   - {fileID: 2106206826}
   - {fileID: 385499834}
+  - {fileID: 312643424}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &872012322
@@ -1876,6 +1909,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: ef9fa7e3247b0634c9dd0a894f36445b, type: 3}
   m_PrefabInstance: {fileID: 1014369941}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1079943710
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1079943711}
+  m_Layer: 0
+  m_Name: Forward Anchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1079943711
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1079943710}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -0, y: 0, z: 13.66}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1219215545}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1 &1127011873 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100002, guid: 844d5473e2080ba428783374fa454b17, type: 3}
@@ -2250,6 +2314,7 @@ Transform:
   - {fileID: 1456758759}
   - {fileID: 1804115587}
   - {fileID: 445589073}
+  - {fileID: 1079943711}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!1 &1249335987 stripped
@@ -2605,7 +2670,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: subjectID
-      value: 5
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationScene
@@ -2677,7 +2742,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.topupFrequency
-      value: 4
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseData.inAdaptationPhase
@@ -2685,19 +2750,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.topUpDuration
-      value: 45
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.samplingFrequency
-      value: 6
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.adaptationDuration
-      value: 360
+      value: 1080
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: adaptationPhaseSettings.preBaselineDuration
-      value: 90
+      value: 45
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.radialStimulisLevels.Array.size
@@ -2705,7 +2770,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.size
-      value: 10
+      value: 28
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[0]
@@ -2721,30 +2786,102 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[3]
-      value: 0.95
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[4]
-      value: 1
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[5]
-      value: 1.04
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[6]
-      value: 1.08
+      value: 0.95
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[7]
-      value: 1.12
+      value: 0.95
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[8]
-      value: 1.16
+      value: 0.95
       objectReference: {fileID: 0}
     - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
       propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[9]
+      value: 0.95
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[10]
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[11]
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[12]
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[13]
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[14]
+      value: 1.04
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[15]
+      value: 1.04
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[16]
+      value: 1.04
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[17]
+      value: 1.04
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[18]
+      value: 1.08
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[19]
+      value: 1.08
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[20]
+      value: 1.08
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[21]
+      value: 1.08
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[22]
+      value: 1.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[23]
+      value: 1.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[24]
+      value: 1.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[25]
+      value: 1.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[26]
+      value: 1.16
+      objectReference: {fileID: 0}
+    - target: {fileID: 5745129752733462889, guid: ecbc2fcf354a5f1439d867f5af217cdb, type: 3}
+      propertyPath: aftereffectSettings.magnificationStimulusLevels.Array.data[27]
       value: 1.2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -2816,6 +2953,8 @@ MonoBehaviour:
   spawnAreaUpperBounds: {x: 2.5, y: 2.2, z: 2.8}
   playerDistance: 1
   prevSpawnDistance: 2
+  maxSpawnAngle: 100
+  forwardReference: {fileID: 1079943711}
   pathList:
   - ./Instructions/Welcome.txt
   - ./Instructions/LookAround.txt

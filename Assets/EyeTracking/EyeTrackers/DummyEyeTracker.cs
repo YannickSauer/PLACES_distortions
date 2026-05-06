@@ -34,11 +34,7 @@ public class DummyEyeTracker : MonoBehaviour, IEyeTracker
         simulatedNoise = noise;
         UnityEngine.Debug.Log("Dummy eye tracker initialized with IPD: " + simulatedIpd + " and noise: " + simulatedNoise);
     }
-
-    private void Update()
-    {
-    }    
-
+    
     public void StartListening()
     {
         backgroundSampling = true;

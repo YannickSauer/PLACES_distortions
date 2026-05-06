@@ -356,12 +356,25 @@ public class ExperimentManager : MonoBehaviour
 
         testManager.roundCounter = roundCounter;
         testManager.canPlayAgain = true;
-        testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
+        // when duration shorter than roundtime, only play one round with the shortened time, otherwise calculate how many rounds fit into the adaptation duration and set that in the test manager
+        float originalRoundTime = testManager.roundTime;
+        if (adaptationDuration < testManager.roundTime)
+        {
+            testManager.totalRounds = 1;
+            testManager.roundTime = adaptationDuration;
+        }
+        else
+        {
+            testManager.totalRounds = Mathf.FloorToInt(adaptationDuration / testManager.roundTime);
+        }
         Debug.Log("Balloon phase: " + adaptationDuration + "s / " + testManager.roundTime + "s = " + testManager.totalRounds + " rounds");
 
         testManager.isDone = false;
         testManager.StartGame();
         yield return new WaitUntil(() => testManager.isDone);
+
+        // original round time back for the next time the adaptation phase is entered 
+        testManager.roundTime = originalRoundTime;
     }
 
     private IEnumerator SwimTestPhase(int ntrials = -1)

@@ -40,10 +40,13 @@ public class AdaptationTask : MonoBehaviour
     [Header("Spawn Settings")]
     public float spawnDelay = 2f; // delay between destruction of balloon and spawning a new one
     private float timer = 0f; // timer for the current run
+    private Transform cachedCameraTransform; // cached Camera.main.transform (avoids tag-lookup in hot path)
     public Vector3 spawnAreaLowerBounds;
     public Vector3 spawnAreaUpperBounds;
     public float playerDistance; // minimum distnace to player
     public float prevSpawnDistance; // minimum distance to previous spawn location
+    public float maxSpawnAngle = 90f; // max horizontal angle from forward direction (in degrees). 90 = balloons only in front half
+    public Transform forwardReference; // assign in inspector: defines what counts as "front" (e.g. window direction). If null, falls back to Camera.main.transform.forward
 
     [Header("Trainings Settings")]
     public List<string> pathList;
@@ -69,6 +72,8 @@ public class AdaptationTask : MonoBehaviour
 
     void Start()
     {
+        if (Camera.main != null)
+            cachedCameraTransform = Camera.main.transform;
         // check if enough colors are provided
         if (balloonColors.Count < 2)
         {
@@ -100,7 +105,6 @@ public class AdaptationTask : MonoBehaviour
             string pathToText = Path.Combine(Application.dataPath, pathList[step]);
             Debug.Log(pathToText);
 
-            // TODO Put readtext to utils ?
             string nextInstructionText = DisplayInformation.ReadText(pathToText);
             Debug.Log(nextInstructionText);
             OnNextTrainingStep?.Invoke(nextInstructionText);
@@ -215,21 +219,22 @@ public class AdaptationTask : MonoBehaviour
 
     private void SpawnAllBalloons()
     {
+        // Cache camera position once for all 7 spawns (avoids 14 Camera.main tag lookups at round start)
+        Vector3 camPos = cachedCameraTransform.position;
+
         // spawn target balloons
         for (int balloonId = 0; balloonId < nTargetBalloons; balloonId++)
         {
-            // Start coroutine to spawn balloons with a delay
             float delay = Random.Range(0f, 1f); // random delay for each balloon
-            Vector3 newPos = FindNewPosition(Camera.main.transform.position);
+            Vector3 newPos = FindNewPosition(camPos);
             StartCoroutine(SpawnBalloon(delay, 0, balloonId, newPos));
         }
 
         // spawn distractor balloons
         for (int balloonId = 0; balloonId < nDistractorBalloons; balloonId++)
         {
-            // Start coroutine to spawn balloons with a delay
             float delay = Random.Range(0f, 1f); // random delay for each balloon
-            Vector3 newPos = FindNewPosition(Camera.main.transform.position);
+            Vector3 newPos = FindNewPosition(camPos);
             StartCoroutine(SpawnBalloon(delay, 1, balloonId, newPos));
         }
     }
@@ -268,7 +273,9 @@ public class AdaptationTask : MonoBehaviour
         Vector3 pos = Camera.main.transform.position;
         int maxAttempts = 100; // to avoid infinite loop 
         int attempts = 0;
-        while ((Vector3.Distance(pos, Camera.main.transform.position) < playerDistance || Vector3.Distance(pos, prevLocation) < prevSpawnDistance))
+        while ((Vector3.Distance(pos, Camera.main.transform.position) < playerDistance
+                || Vector3.Distance(pos, prevLocation) < prevSpawnDistance
+                || !IsInFrontOfPlayer(pos)))
         {
             pos = RandomPointInBounds(spawnAreaLowerBounds, spawnAreaUpperBounds);
             attempts++;
@@ -279,6 +286,22 @@ public class AdaptationTask : MonoBehaviour
             }
         }
         return pos;
+    }
+
+    // checks whether a candidate position lies within maxSpawnAngle horizontal degrees of the defined forward direction
+    private bool IsInFrontOfPlayer(Vector3 candidatePos)
+    {
+        Vector3 playerPos = Camera.main.transform.position;
+        // use forwardReference if assigned, else fall back to camera forward
+        Vector3 forwardDir = (forwardReference != null) ? forwardReference.forward : Camera.main.transform.forward;
+        // project both vectors to the horizontal plane (ignore vertical component)
+        forwardDir.y = 0f;
+        Vector3 toCandidate = candidatePos - playerPos;
+        toCandidate.y = 0f;
+        // edge case: candidate is directly above/below player
+        if (toCandidate.sqrMagnitude < 0.0001f) return true;
+        float angle = Vector3.Angle(forwardDir, toCandidate);
+        return angle <= maxSpawnAngle;
     }
 
     public Vector3 RandomPointInBounds(Vector3 lowerBounds, Vector3 upperBounds)
@@ -292,25 +315,9 @@ public class AdaptationTask : MonoBehaviour
 
     void HandleBalloonExploded(Balloon b)
     {
-        if (b.groupId == 0) // this was a target balloon, we get negative points
-        {
-            score -= Mathf.Abs(explodeScore); // take neg abs,then it doesn't matter how the explodeScore was defined (pos or neg)
-            SpawnPoints(b.transform.position, -Mathf.Abs(explodeScore));
-            GameObject explosion = Instantiate(explosionPrefab, b.transform.position, Quaternion.identity);
-            // play the explosion particle system
-            ParticleSystem explosionPS = explosion.GetComponent<ParticleSystem>();
-            // set the color of the explosion to the color of the balloon
-            ParticleSystem.MainModule main = explosionPS.main;
-            Color balloonColor = b.GetComponent<Renderer>().material.color;
-            balloonColor.a = 1f; 
-            main.startColor = balloonColor;
-            explosionPS.Play();
-            // destroy the explosion after 1 second
-            Destroy(explosion, 1f);
-        }
-
-        Debug.Log("Balloon exploded! Score: " + score);
-        // start score animation
+        // Green balloons that grew too big now vanish silently with no penalty.
+        // The participant didn't actively do anything wrong - they just missed it.
+        // No score change, no points popup, no explosion particle effect.
 
         // spawn a new balloon in the same group
         if (inRound)
@@ -354,7 +361,6 @@ public class AdaptationTask : MonoBehaviour
         }
         score += points;
         SpawnPoints(b.transform.position, points);
-        Debug.Log("Balloon popped! Score: " + score);
         // spawn a new balloon in the same group
         if (inRound)
         {
@@ -369,7 +375,7 @@ public class AdaptationTask : MonoBehaviour
     void SpawnPoints(Vector3 position, int points)
     {
         GameObject pointsObj = Instantiate(pointsPrefab, position + 0.2f * Vector3.up, Quaternion.identity);
-        pointsObj.transform.LookAt(Camera.main.transform);
+        pointsObj.transform.LookAt(cachedCameraTransform);
         pointsObj.transform.Rotate(0, 180f, 0); // Rotate to face the camera properly
         // get child object with text component
         TMP_Text pointsText = pointsObj.transform.GetChild(0).GetComponent<TMP_Text>();
@@ -408,56 +414,16 @@ public class AdaptationTask : MonoBehaviour
 
     public void SpawnForTutorial(int groupId, Vector3 pos)
     {
-        Debug.Log("Spawn for tutorial.");
         StartCoroutine(SpawnBalloon(0.0f, groupId, 0, pos, true));
     }
 
 
-    // For testing: destroy balloon with mouse click (or raycast in VR)
     void Update()
     {
-
-        // if not in round, check if trigger is pressed
+        // Manual start via keyboard (operator shortcut during testing)
         if (!inRound && Input.GetKeyDown(KeyCode.B))
         {
             StartCoroutine(StartRound());
         }
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            Debug.Log(Input.mousePosition);
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            Debug.DrawRay(ray.origin, 10f * ray.direction, Color.cyan);
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                Debug.Log(hit.transform.gameObject.name);
-                Balloon balloon = hit.collider.GetComponent<Balloon>();
-                if (balloon != null)
-                {
-                    Debug.Log("Balloon Hit");
-                    balloon.Pop(ray.direction);
-                }
-            }
-        }
-
-
-
-        //UpdateTexts();
-        // check if the time is up
-        // if (Time.time - timer >= duration)
-        // {
-        //     Debug.Log("Time's up! Final score: " + score);
-        //     // handle end of the game, e.g. show results or go to next scene
-        //     // SceneManager.LoadScene("NextScene");
-        // }
-        // extenstions:
-        // 1. Add a timer to the game
-        // 2. Increase the speed of the balloons over time
-        // 3. Add a score multiplier for consecutive pops
-        // 4. Add a sound effect for popping balloons
-        // 5. Add a visual effect for popping balloons
-        // 6. Add a countdown timer for the game
     }
-    
-
 }

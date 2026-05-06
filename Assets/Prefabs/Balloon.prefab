@@ -124,6 +124,7 @@ MonoBehaviour:
   explosionSound: {fileID: 8300000, guid: f09ffc51e02d9ca4ba1f0e6e9203f173, type: 3}
   popSound: {fileID: 8300000, guid: da6c04d155a103a4883236c5003bbe14, type: 3}
   wrongPopSound: {fileID: 8300000, guid: 2aea9256c5da499438e0e3570125afb7, type: 3}
+  vanishSound: {fileID: 8300000, guid: 9437da3847d38f945b1ad24c66eeb36e, type: 3}
 --- !u!54 &-1440715296755864837
 Rigidbody:
   m_ObjectHideFlags: 0

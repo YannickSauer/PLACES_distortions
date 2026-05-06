@@ -16,6 +16,7 @@ public class Balloon : MonoBehaviour
     public AudioClip explosionSound;
     public AudioClip popSound;
     public AudioClip wrongPopSound;
+    public AudioClip vanishSound; // neutral puff sound when balloon vanishes without popping or exploding (e.g. when it goes out of bounds)
 
     //[Header("Initial Size")] // (Tolga)
     //public float initialScaleGreen = 0.2f;
@@ -124,26 +125,35 @@ public class Balloon : MonoBehaviour
     private void Explode()
     {
         if (!isActive) return;
-        // play explosion sound
-        if (groupId == 0) // explosion only for the target balloon
+        // play vanish sound for green balloons (neutral puff, no penalty feel)
+        if (groupId == 0) // target balloon - just gently vanishes
         {
-            AudioSource.PlayClipAtPoint(explosionSound, transform.position);
+            if (vanishSound != null)
+            {
+                AudioSource.PlayClipAtPoint(vanishSound, transform.position);
+            }
         }
-        
-        // 
-        //         // Instatiate a explode prefab here
-        // GameObject popEffect = Instantiate(explodePrefab, transform.position, Quaternion.identity);
-        // Destroy(explodeEffect, 1f); // destroy the pop effect after 1 second
-        // set color of pop effect to the color of the balloon
-        // var explodeRenderer = explodeEffect.GetComponent<Renderer>();
-        // if (explodeRenderer != null)
-        // {
-        //     explodeRenderer.material.color = GetComponent<Renderer>().material.color;
-        // }
-        // Invoke the OnPopped event so that the AdaptationTask can handle it (e.g. update score)
+        // blue balloons vanish silently (unchanged behavior)
+
         isActive = false;
         OnExplode?.Invoke(this);
-        
+
+        // gentle shrink effect instead of hard destroy
+        StartCoroutine(VanishEffect());
+    }
+
+    private IEnumerator VanishEffect()
+    {
+        // smoothly scale down the balloon to zero over 0.3 seconds
+        float duration = 0.3f;
+        float elapsed = 0f;
+        Vector3 initialScale = transform.localScale;
+        while (elapsed < duration)
+        {
+            transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
         Destroy(gameObject);
     }
     // add onDestroy method to clean up the event listeners

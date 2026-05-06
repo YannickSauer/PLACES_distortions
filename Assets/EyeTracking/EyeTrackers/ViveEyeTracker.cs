@@ -17,22 +17,29 @@ public class ViveEyeTracker : IEyeTracker
     {
         // check if SRanipal_Eye_Framework is already present in scene
         SRanipal_Eye_Framework sranipal = SRanipal_Eye_Framework.Instance;
-        // if not, add it
         if (sranipal == null)
         {
             GameObject go = new GameObject("SRanipal_Eye_Framework");
             sranipal = go.AddComponent<SRanipal_Eye_Framework>();
-            // set go to not be destroyed on scene change
             GameObject.DontDestroyOnLoad(go);
         }
-        
-        // Activate Eye Data Callback
+
         sranipal.EnableEyeDataCallback = true;
         sranipal.StartFramework();
 
-        Debug.Log(SRanipal_Eye_Framework.Status);
-        Debug.Log(SRanipal_Eye_Framework.FrameworkStatus.WORKING);
-
+        // Warn clearly if the runtime is not available.
+        // WORKING  = 3 (we want this)
+        // NOT_SUPPORT, ERROR, STOP etc. are problem states.
+        if (SRanipal_Eye_Framework.Status != SRanipal_Eye_Framework.FrameworkStatus.WORKING)
+        {
+            Debug.LogError("[ViveEyeTracker] SRanipal is NOT working — status is: " + SRanipal_Eye_Framework.Status +
+                ". Eye tracking data will NOT be recorded. " +
+                "Make sure SR_Runtime.exe is running, the HMD is connected, and calibration has been done.");
+        }
+        else
+        {
+            Debug.Log("[ViveEyeTracker] SRanipal is WORKING. Eye tracking is ready.");
+        }
     }
 
     public void Calibrate()

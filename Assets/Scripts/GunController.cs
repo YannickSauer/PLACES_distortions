@@ -7,10 +7,12 @@ using UnityEngine.InputSystem.XR;
 
 public class GunController : MonoBehaviour
 {
-    public GameObject hitDotPrefab; // Assign in inspector
+    public Transform muzzle;          // Assign in inspector - the transform from which the laser is cast
+    public GameObject hitDotPrefab;   // Assign in inspector
 
     private GameObject hitDotInstance;
     private AdaptationTask adaptationTask;
+
     void Start()
     {
         // Create the dot at runtime
@@ -22,16 +24,23 @@ public class GunController : MonoBehaviour
         {
             Debug.LogError("AdaptationTask not found in the scene.");
         }
+
+        // Fallback: if no muzzle is assigned, use the GameObject's own transform
+        if (muzzle == null)
+        {
+            Debug.LogWarning("Muzzle transform not assigned in GunController. Falling back to own transform.");
+            muzzle = transform;
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        // perform raycast in direction of the gun and show a point at the hit position
+        // perform raycast in direction of the muzzle and show a point at the hit position
         RaycastHit hit;
-        if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out hit))
+        if (Physics.Raycast(muzzle.position, muzzle.forward, out hit))
         {
-            Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
+            Debug.DrawRay(muzzle.position, muzzle.forward * hit.distance, Color.yellow);
             // Move the dot to the hit point
             if (hitDotInstance != null)
             {
@@ -42,24 +51,23 @@ public class GunController : MonoBehaviour
         }
         else
         {
-            Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * 1000, Color.white);
+            Debug.DrawRay(muzzle.position, muzzle.forward * 1000, Color.white);
         }
-
     }
 
     private void OnFireRight()
     {
         Debug.Log("Shoot");
         RaycastHit hit;
-        if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out hit))
+        if (Physics.Raycast(muzzle.position, muzzle.forward, out hit))
         {
-            Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.cyan);
+            Debug.DrawRay(muzzle.position, muzzle.forward * hit.distance, Color.cyan);
             // check if the hit object is a balloon
             Balloon balloon = hit.collider.GetComponent<Balloon>();
             if (balloon != null)
             {
                 // pop the balloon
-                balloon.Pop(transform.TransformDirection(Vector3.forward));
+                balloon.Pop(muzzle.forward);
             }
         }
     }

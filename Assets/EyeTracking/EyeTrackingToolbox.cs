@@ -28,6 +28,7 @@ public class EyeTrackingToolbox : MonoBehaviour
 
     public ETProvider etprovider = ETProvider.HTCViveSRanipal;
     private IEyeTracker eyeTracker;
+    private Transform mainCamTransform; // cached Camera.main.transform
     public KeyCode calibrateKey = KeyCode.C;
 
     private GazeData currentGazeData; // for gaze sample of the current frame
@@ -136,14 +137,6 @@ public class EyeTrackingToolbox : MonoBehaviour
         // event handler for gaze data
         EyeTrackingEvent.OnDataAvailable += HandleData; // subscribe to event
 
-        // test Datetime accuracy
-        DateTime t1 = DateTime.Now;
-        DateTime t2;
-        while ((t2 = DateTime.Now) == t1)
-        {
-            Debug.Log("DateTime accuracy: " + (t2 - t1).TotalMilliseconds + "ms");
-        }
-
         // set US culture for number formatting in strings
         System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
         System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
@@ -159,6 +152,7 @@ public class EyeTrackingToolbox : MonoBehaviour
 
     private void Start()
     {
+        mainCamTransform = Camera.main.transform;
         eyeTracker.StartListening(); // start the background event system
     }
 
@@ -180,9 +174,9 @@ public class EyeTrackingToolbox : MonoBehaviour
 
     public GazeData GetGazeData()
     {
-        currentGazeData.leftRayWorld = new Ray(Camera.main.transform.TransformPoint(currentGazeData.leftRayLocal.origin), Camera.main.transform.TransformDirection(currentGazeData.leftRayLocal.direction));
-        currentGazeData.rightRayWorld = new Ray(Camera.main.transform.TransformPoint(currentGazeData.rightRayLocal.origin), Camera.main.transform.TransformDirection(currentGazeData.rightRayLocal.direction));
-        currentGazeData.combinedRayWorld = new Ray(Camera.main.transform.TransformPoint(currentGazeData.combinedRayLocal.origin), Camera.main.transform.TransformDirection(currentGazeData.combinedRayLocal.direction));
+        currentGazeData.leftRayWorld = new Ray(mainCamTransform.TransformPoint(currentGazeData.leftRayLocal.origin), mainCamTransform.TransformDirection(currentGazeData.leftRayLocal.direction));
+        currentGazeData.rightRayWorld = new Ray(mainCamTransform.TransformPoint(currentGazeData.rightRayLocal.origin), mainCamTransform.TransformDirection(currentGazeData.rightRayLocal.direction));
+        currentGazeData.combinedRayWorld = new Ray(mainCamTransform.TransformPoint(currentGazeData.combinedRayLocal.origin), mainCamTransform.TransformDirection(currentGazeData.combinedRayLocal.direction));
         return currentGazeData;
     }
 
@@ -230,7 +224,7 @@ public class EyeTrackingToolbox : MonoBehaviour
                 gazeTrackingFile = Path.Combine(OutputFolder, outputFileName.Substring(0, outputFileName.Length - 4) + "_" + counter.ToString("D2") + "_gaze.csv");
             }
             WriteHeader();
-            InvokeRepeating(nameof(Save), 0.0f, 1.0f); // save data to file every second
+            StartBackgroundWriter();
         }
     }
     
@@ -251,29 +245,53 @@ public class EyeTrackingToolbox : MonoBehaviour
     public void StopRecording()
     {
         isRecording = false;
-        // stop future invokes of Saving function
-        CancelInvoke(nameof(Save));
 
-        // Wait for current save to finish and then call one final WriteTrackingData to empty the queue
+        // Signal the background writer to flush & exit
+        writerThreadRunning = false;
+        writerWakeUp.Set();
+
         if (savingThread != null && savingThread.IsAlive)
         {
             savingThread.Join();
         }
-        WriteTrackingData();
 
         Debug.Log("Stopped Recording");
     }
 
+    private void OnEnable()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
     private void OnDisable()
     {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+
+        // Stop the background writer if still running
+        if (writerThreadRunning)
+        {
+            writerThreadRunning = false;
+            writerWakeUp.Set();
+            if (savingThread != null && savingThread.IsAlive)
+            {
+                savingThread.Join();
+            }
+        }
+
         if (eyeTracker != null)
         {
-            eyeTracker.StopListening(); // stop the background gaze data sampling
+            eyeTracker.StopListening();
         }
-        if (EyeTrackingEvent.HasSubscribers()) // chek if EyeTrackingEvent.OnDataAvailable is != null, only then we can unsubscribe
+        if (EyeTrackingEvent.HasSubscribers())
         {
             EyeTrackingEvent.OnDataAvailable -= HandleData;
         }
+    }
+
+    // Re-cache Camera.main after a scene change (old camera is destroyed).
+    private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        if (Camera.main != null) mainCamTransform = Camera.main.transform;
     }
     
     // Write header for tracking files
@@ -364,34 +382,44 @@ public class EyeTrackingToolbox : MonoBehaviour
         msgBuffer = msg;
     }
 
+    // Reusable StringBuilder for gaze data, allocated once (reduces GC pressure at 120Hz)
+    private StringBuilder gazeStringBuilder = new StringBuilder(512);
+
     private string GazeDataString(GazeData gazeDataSample)
     {
-        StringBuilder datasetLine = new StringBuilder(350); // adjust capacity to your needs
+        gazeStringBuilder.Clear();
+        var ci = invariantCulture;
 
-        datasetLine.Append(gazeDataSample.unityTimestamp.ToSafeString() + ",");
-        datasetLine.Append(gazeDataSample.deviceTimestamp.ToString() + ",");
+        gazeStringBuilder.Append(gazeDataSample.unityTimestamp.ToString("F10", ci)).Append(',');
+        gazeStringBuilder.Append(gazeDataSample.deviceTimestamp).Append(',');
 
         // left eye
-        datasetLine.Append(gazeDataSample.leftValidity.ToString() + ",");
-        datasetLine.Append(gazeDataSample.leftEyeOpenness.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.leftPupilDiameter.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.leftRayLocal.origin.x.ToString("F10") + "," + gazeDataSample.leftRayLocal.origin.y.ToString("F10") + "," + gazeDataSample.leftRayLocal.origin.z.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.leftRayLocal.direction.x.ToString("F10") + "," + gazeDataSample.leftRayLocal.direction.y.ToString("F10") + "," + gazeDataSample.leftRayLocal.direction.z.ToString("F10") + ",");
-        //datasetLine.Append(gazeDataSample.leftPupilPosition.x.ToString("F10") + "," + gazeDataSample.leftPupilPosition.y.ToString("F10") + ",");
+        gazeStringBuilder.Append(gazeDataSample.leftValidity).Append(',');
+        gazeStringBuilder.Append(gazeDataSample.leftEyeOpenness.ToString("F10", ci)).Append(',');
+        gazeStringBuilder.Append(gazeDataSample.leftPupilDiameter.ToString("F10", ci)).Append(',');
+        AppendVector3(gazeStringBuilder, gazeDataSample.leftRayLocal.origin, ci);
+        AppendVector3(gazeStringBuilder, gazeDataSample.leftRayLocal.direction, ci);
 
         // right eye
-        datasetLine.Append(gazeDataSample.rightValidity.ToString() + ",");
-        datasetLine.Append(gazeDataSample.leftEyeOpenness.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.rightPupilDiameter.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.rightRayLocal.origin.x.ToString("F10") + "," + gazeDataSample.rightRayLocal.origin.y.ToString("F10") + "," + gazeDataSample.rightRayLocal.origin.z.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.rightRayLocal.direction.x.ToString("F10") + "," + gazeDataSample.rightRayLocal.direction.y.ToString("F10") + "," + gazeDataSample.rightRayLocal.direction.z.ToString("F10") + ",");
-        //datasetLine.Append(gazeDataSample.rightPupilPosition.x.ToString("F10") + "," + gazeDataSample.rightPupilPosition.y.ToString("F10") + ",");
+        gazeStringBuilder.Append(gazeDataSample.rightValidity).Append(',');
+        gazeStringBuilder.Append(gazeDataSample.rightEyeOpenness.ToString("F10", ci)).Append(','); // BUGFIX: was writing leftEyeOpenness here
+        gazeStringBuilder.Append(gazeDataSample.rightPupilDiameter.ToString("F10", ci)).Append(',');
+        AppendVector3(gazeStringBuilder, gazeDataSample.rightRayLocal.origin, ci);
+        AppendVector3(gazeStringBuilder, gazeDataSample.rightRayLocal.direction, ci);
 
-        // combined eye
-        datasetLine.Append(gazeDataSample.combinedRayLocal.origin.x.ToString("F10") + "," + gazeDataSample.combinedRayLocal.origin.y.ToString("F10") + "," + gazeDataSample.combinedRayLocal.origin.z.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.combinedRayLocal.direction.x.ToString("F10") + "," + gazeDataSample.combinedRayLocal.direction.y.ToString("F10") + "," + gazeDataSample.combinedRayLocal.direction.z.ToString("F10") + ",");
-        datasetLine.Append(gazeDataSample.gazeDistance.ToString("F10") + ",");
-        return (datasetLine.ToString());
+        // combined
+        AppendVector3(gazeStringBuilder, gazeDataSample.combinedRayLocal.origin, ci);
+        AppendVector3(gazeStringBuilder, gazeDataSample.combinedRayLocal.direction, ci);
+        gazeStringBuilder.Append(gazeDataSample.gazeDistance.ToString("F10", ci)).Append(',');
+
+        return gazeStringBuilder.ToString();
+    }
+
+    private static void AppendVector3(StringBuilder sb, Vector3 v, System.Globalization.CultureInfo ci)
+    {
+        sb.Append(v.x.ToString("F10", ci)).Append(',');
+        sb.Append(v.y.ToString("F10", ci)).Append(',');
+        sb.Append(v.z.ToString("F10", ci)).Append(',');
     }
 
     // Reusable StringBuilder, allocated once instead of every frame (reduces garbage collection pauses).
@@ -466,8 +494,8 @@ public class EyeTrackingToolbox : MonoBehaviour
     public string GazeRaycast()
     {
         RaycastHit hit;
-        Vector3 rayOrigin = Camera.main.transform.position + Camera.main.transform.rotation * currentGazeData.combinedRayLocal.origin;
-        Vector3 rayDirection = Camera.main.transform.rotation * currentGazeData.combinedRayLocal.direction;
+        Vector3 rayOrigin = mainCamTransform.position + mainCamTransform.rotation * currentGazeData.combinedRayLocal.origin;
+        Vector3 rayDirection = mainCamTransform.rotation * currentGazeData.combinedRayLocal.direction;
 
         if (Physics.Raycast(rayOrigin, rayDirection, out hit))
         {
@@ -480,15 +508,31 @@ public class EyeTrackingToolbox : MonoBehaviour
         }
     }
 
-    private void Save()
+    private volatile bool writerThreadRunning = false;
+    private System.Threading.ManualResetEventSlim writerWakeUp = new System.Threading.ManualResetEventSlim(false);
+
+    // Start a single long-lived background writer thread instead of creating one per second.
+    // Thread creation is expensive (1-10ms); this avoids periodic main-thread stalls.
+    private void StartBackgroundWriter()
     {
-        if (savingThread != null && savingThread.IsAlive)
-        {
-            Debug.Log("Previous saving thread is still running");
-            return;
-        }
-        savingThread = new Thread(WriteTrackingData);
+        if (writerThreadRunning) return;
+        writerThreadRunning = true;
+        savingThread = new Thread(BackgroundWriterLoop) { IsBackground = true, Name = "EyeTracker-Writer" };
         savingThread.Start();
+    }
+
+    // Runs on the background thread. Sleeps 1s between checks, drains the queues when woken.
+    private void BackgroundWriterLoop()
+    {
+        while (writerThreadRunning)
+        {
+            WriteTrackingData();
+            // Sleep for up to 1 second, but wake early if asked to stop
+            writerWakeUp.Wait(1000);
+            writerWakeUp.Reset();
+        }
+        // Final flush on shutdown
+        WriteTrackingData();
     }
 
     private void WriteTrackingData()
