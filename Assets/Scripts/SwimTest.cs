@@ -27,6 +27,9 @@ public class SwimTest : MonoBehaviour
     private bool touchpadPressed = false;
     private bool isTestRunning = false;
     private string filePath;
+    // Spectator-only overlay: monitor
+    private TMP_Text spectatorTrialText;
+    private GameObject spectatorOverlayObj;
 
     [Header("UI settings")]
     public Image flashImage;
@@ -51,6 +54,7 @@ public class SwimTest : MonoBehaviour
     public AudioClip metronomeClip;
     public AudioClip instructionReminderClip;
     public AudioClip dotTransitionClip;
+    public AudioClip assessmentTransitionClip; // played before the rating task starts (after the unstable demo)
     public AudioClip correctClip;
     public AudioClip wrongClip;
     [Header("Stable/Unstable Feedback Audio")]
@@ -537,7 +541,31 @@ public class SwimTest : MonoBehaviour
                     // From now on: only dots + DotManager fixation target visible, no training UI
                     dotManager.showFixationTarget = true;
 
-                    // Start example trials with dots
+                    // Demo trial: unstable
+                    dotManager.distortionParam.x = 1.3f;
+                    instructionText.text = "";
+                    DisplayInformation.HideTrainingBackground();
+                    yield return StartCoroutine(ResampleAndReproject());
+                    yield return StartCoroutine(HeadMovement());
+                    dotManager.distortionParam.x = 1.0f;
+                    dotManager.active = false;
+
+                    // Transition: now explain the rating task before the assessment trials
+                    instructionText.text = "That was an unstable trial.\nNow you will judge stable vs. unstable yourself.\nTrigger = unstable, Trackpad = stable\n<b>Press trackpad to start.</b>";
+                    DisplayInformation.ShowTrainingBackground();
+
+                    // Play voiceover for this instruction
+                    if (assessmentTransitionClip != null)
+                    {
+                        beepSource.pitch = 1f;
+                        beepSource.PlayOneShot(assessmentTransitionClip);
+                    }
+
+                    touchpadPressed = false;
+                    yield return new WaitUntil(() => AnyContinueInput());
+                    beepSource.Stop(); // stop audio if still playing when participant continues
+
+                    // Assessment trials: participant decides stable/unstable 
                     exampleMags = new List<float> { 1.0f, 1.2f, 1.0f };
                     while (exampleMags.Count > 0)
                     {
@@ -964,6 +992,7 @@ public class SwimTest : MonoBehaviour
             float radial = aftereffectData.radialTrial[aftereffectData.currentTrial];
             dotManager.distortionParam.x = magnification;
             dotManager.distortionParam.y = radial;
+            UpdateSpectatorTrialInfo();
 
             // set scene and random dots for the current distortion
             yield return StartCoroutine(ResampleAndReproject());
@@ -1047,7 +1076,70 @@ public class SwimTest : MonoBehaviour
         yield return new WaitForSeconds(1f);
 
         Debug.Log("Aftereffect test completed.");
+        HideSpectatorTrialInfo();
         isTestRunning = false;
+    }
+
+    void EnsureSpectatorOverlay()
+    {
+        if (spectatorTrialText != null) return;
+
+        spectatorOverlayObj = new GameObject("SpectatorOverlay_Canvas");
+        Canvas canvas = spectatorOverlayObj.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 32760;
+        spectatorOverlayObj.AddComponent<UnityEngine.UI.CanvasScaler>().uiScaleMode =
+            UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        spectatorOverlayObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+        GameObject bg = new GameObject("BG");
+        bg.transform.SetParent(spectatorOverlayObj.transform, false);
+        var bgImg = bg.AddComponent<UnityEngine.UI.Image>();
+        bgImg.color = new Color(0f, 0f, 0f, 0.7f);
+        RectTransform bgRT = bg.GetComponent<RectTransform>();
+        bgRT.anchorMin = new Vector2(0f, 1f);
+        bgRT.anchorMax = new Vector2(0f, 1f);
+        bgRT.pivot = new Vector2(0f, 1f);
+        bgRT.anchoredPosition = new Vector2(20f, -20f);
+        bgRT.sizeDelta = new Vector2(520f, 110f);
+
+        GameObject txt = new GameObject("Text");
+        txt.transform.SetParent(bg.transform, false);
+        spectatorTrialText = txt.AddComponent<TextMeshProUGUI>();
+        spectatorTrialText.text = "";
+        spectatorTrialText.fontSize = 32;
+        spectatorTrialText.color = Color.white;
+        spectatorTrialText.alignment = TextAlignmentOptions.TopLeft;
+        spectatorTrialText.enableWordWrapping = false;
+        RectTransform txtRT = spectatorTrialText.GetComponent<RectTransform>();
+        txtRT.anchorMin = Vector2.zero;
+        txtRT.anchorMax = Vector2.one;
+        txtRT.offsetMin = new Vector2(15f, 10f);
+        txtRT.offsetMax = new Vector2(-15f, -10f);
+
+        DontDestroyOnLoad(spectatorOverlayObj);
+    }
+
+    void UpdateSpectatorTrialInfo()
+    {
+        EnsureSpectatorOverlay();
+        if (spectatorTrialText == null || aftereffectData == null) return;
+
+        int idx = aftereffectData.currentTrial;
+        if (idx < 0 || idx >= aftereffectData.nTrials) { spectatorTrialText.text = ""; return; }
+
+        float mag = aftereffectData.magnificationTrial[idx];
+        float rad = aftereffectData.radialTrial[idx];
+        string phase = (expManager != null && expManager.adaptationPhaseData.distorted) ? "aftereffect" : "baseline";
+        string mode = isTraining ? "TRAINING" : phase.ToUpper();
+
+        spectatorTrialText.text =
+            $"<b>{mode}</b>\nTrial: {idx + 1} / {aftereffectData.nTrials}\nMag: {mag:0.00}   Radial: {rad:0.00}";
+    }
+
+    void HideSpectatorTrialInfo()
+    {
+        if (spectatorTrialText != null) spectatorTrialText.text = "";
     }
 
     void SaveTrial(int answer)

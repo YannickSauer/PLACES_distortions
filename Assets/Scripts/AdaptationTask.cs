@@ -270,15 +270,27 @@ public class AdaptationTask : MonoBehaviour
 
     private Vector3 FindNewPosition(Vector3 prevLocation)
     {
-        Vector3 pos = Camera.main.transform.position;
-        int maxAttempts = 100; // to avoid infinite loop 
+        // Cache camera position once outside the loop to avoid tag-lookup spam.
+        Vector3 camPos = cachedCameraTransform.position;
+        Vector3 pos = camPos;
+        int maxAttempts = 100;
         int attempts = 0;
-        while ((Vector3.Distance(pos, Camera.main.transform.position) < playerDistance
-                || Vector3.Distance(pos, prevLocation) < prevSpawnDistance
-                || !IsInFrontOfPlayer(pos)))
+
+        bool valid = false;
+        while (!valid)
         {
             pos = RandomPointInBounds(spawnAreaLowerBounds, spawnAreaUpperBounds);
             attempts++;
+
+            // Check 1: distance from player
+            bool farEnoughFromPlayer = Vector3.Distance(pos, camPos) >= playerDistance;
+            // Check 2: distance from previous spawn
+            bool farEnoughFromPrev = Vector3.Distance(pos, prevLocation) >= prevSpawnDistance;
+            // Check 3: line of sight (no obstacle between player and balloon position)
+            bool hasLineOfSight = !Physics.Linecast(camPos, pos);
+
+            valid = farEnoughFromPlayer && farEnoughFromPrev && hasLineOfSight;
+
             if (attempts > maxAttempts)
             {
                 Debug.LogWarning("Could not find a suitable spawn position after " + maxAttempts + " attempts. Spawning at last tried position.");
