@@ -15,21 +15,33 @@ if len(sys.argv) > 1:
 else:
     data_folder = input("path to data folder: ").strip().strip('"')
 
-# magnification level to plot
+# mode selection: 'overview' shows one random trial per mag level (all plots),
+# 'single' lets the user pick a specific mag + trial(s).
 if len(sys.argv) > 2:
-    chosen_mag = float(sys.argv[2])
+    chosen_mag_input = sys.argv[2]
 else:
-    chosen_mag = float(input("magnification level to plot (e.g. 1.04): ").strip())
-# which trials within that mag level to show. accepted formats:
-#   "all"        -> every trial with that mag
-#   "1"          -> only the first trial
-#   "1-4"        -> trials 1, 2, 3, 4 (inclusive range, 1-based)
-#   "2,5"        -> trials 2 and 5
-#   "1-3,7"      -> ranges and single numbers can be combined
-if len(sys.argv) > 3:
-    trial_selection = sys.argv[3]
+    chosen_mag_input = input(
+        "magnification level (e.g. 1.04), or 'overview' for one random trial per mag: "
+    ).strip()
+
+if chosen_mag_input.lower() == "overview":
+    overview_mode = True
+    chosen_mag = None
+    trial_selection = None
 else:
-    trial_selection = input("which trials? (e.g. 'all', '1', '1-4', '2,5'): ").strip()
+    overview_mode = False
+    chosen_mag = float(chosen_mag_input)
+
+    # which trials within that mag level to show. accepted formats:
+    #   "all"        -> every trial with that mag
+    #   "1"          -> only the first trial
+    #   "1-4"        -> trials 1, 2, 3, 4 (inclusive range, 1-based)
+    #   "2,5"        -> trials 2 and 5
+    #   "1-3,7"      -> ranges and single numbers can be combined
+    if len(sys.argv) > 3:
+        trial_selection = sys.argv[3]
+    else:
+        trial_selection = input("which trials? (e.g. 'all', '1', '1-4', '2,5'): ").strip()
 
 def parse_trial_selection(text, n_available):
     """
@@ -258,82 +270,149 @@ if all_delays:
 else:
     global_median_delay = 0.0
 
-# step B: now load the trials we actually want to plot, and apply the
-# global median delay to all of them
-all_signals = {}
+import random
+# determine which mag levels to loop over
+if overview_mode:
+    # find all unique mag levels across both phases
+    all_mags = set()
+    for phase in ["baseline", "aftereffect"]:
+        head_df, _ = loaded_data[phase]
+        for tr in parse_trials(head_df, phase):
+            all_mags.add(tr["magnification"])
+    mag_levels_to_plot = sorted(all_mags)
+    print(f"\noverview mode: will plot one random trial per mag level "
+          f"({len(mag_levels_to_plot)} mag levels)")
+else:
+    mag_levels_to_plot = [chosen_mag]
 
-for phase in ["baseline", "aftereffect"]:
-    print(f"\n*** {phase} ***")
-    head_df, gaze_df = loaded_data[phase]
+# step B: collect signals for all mag levels we want to plot
+EYE_WARMUP_MS = 200
+signals_per_mag = {}  # mag_level -> {phase: [list of signals]}
 
-    trials = parse_trials(head_df, phase)
-    trials_for_mag = [t for t in trials if abs(t["magnification"] - chosen_mag) < 0.001]
-    print(f"found {len(trials_for_mag)} trials with mag = {chosen_mag}")
+for current_mag in mag_levels_to_plot:
+    all_signals_this_mag = {}
+    for phase in ["baseline", "aftereffect"]:
+        print(f"\n*** mag = {current_mag}, {phase} ***")
+        head_df, gaze_df = loaded_data[phase]
 
-    selected_indices = parse_trial_selection(trial_selection, len(trials_for_mag))
-    trials_selected = [trials_for_mag[i] for i in selected_indices]
-    print(f"selected {len(trials_selected)} trials: {[i+1 for i in selected_indices]}")
+        trials = parse_trials(head_df, phase)
+        trials_for_mag = [t for t in trials if abs(t["magnification"] - current_mag) < 0.001]
+        print(f"found {len(trials_for_mag)} trials with mag = {current_mag}")
 
-    signals = []
-    for tr in trials_selected:
-        s = get_trial_signals(head_df, gaze_df, tr)
-        if s is not None:
-            signals.append(s)
+        if overview_mode:
+            # pick one random trial from this mag level
+            if len(trials_for_mag) > 0:
+                random_idx = random.randint(0, len(trials_for_mag) - 1)
+                selected_indices = [random_idx]
+            else:
+                selected_indices = []
+        else:
+            selected_indices = parse_trial_selection(trial_selection, len(trials_for_mag))
+        trials_selected = [trials_for_mag[i] for i in selected_indices]
+        print(f"selected {len(trials_selected)} trials: {[i+1 for i in selected_indices]}")
 
-    # apply the global median delay, then clip eye signal to valid range
-    EYE_WARMUP_MS = 200
-    for s in signals:
-        s["eye_t"] = s["eye_t"] + global_median_delay
-        t_start_valid = s["head_t"][0] + EYE_WARMUP_MS / 1000.0
-        valid = (s["eye_t"] >= t_start_valid) & (s["eye_t"] <= s["head_t"][-1])
-        s["eye_t"] = s["eye_t"][valid]
-        s["eye_yaw"] = s["eye_yaw"][valid]
+        signals = []
+        for tr in trials_selected:
+            s = get_trial_signals(head_df, gaze_df, tr)
+            if s is not None:
+                signals.append(s)
 
-    all_signals[phase] = signals
+        # apply the global median delay, then clip eye signal to valid range
+        for s in signals:
+            s["eye_t"] = s["eye_t"] + global_median_delay
+            t_start_valid = s["head_t"][0] + EYE_WARMUP_MS / 1000.0
+            valid = (s["eye_t"] >= t_start_valid) & (s["eye_t"] <= s["head_t"][-1])
+            s["eye_t"] = s["eye_t"][valid]
+            s["eye_yaw"] = s["eye_yaw"][valid]
+
+        all_signals_this_mag[phase] = signals
+
+    signals_per_mag[current_mag] = all_signals_this_mag
 
 
-# plot 
+# step C: plot 
 
-# one column per phase, all trials of that phase shown together as separate lines
-fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
+phase_color = {"baseline": "steelblue", "aftereffect": "crimson"}
 
-phase_color = {"baseline": "darkblue", "aftereffect": "orange"}
+if overview_mode:
+    # one big figure: 2 columns, one row per mag level
+    n_mags = len(mag_levels_to_plot)
+    n_cols = 2
+    n_rows = (n_mags + n_cols - 1) // n_cols  # ceiling division
 
-for ax, phase in zip(axes, ["baseline", "aftereffect"]):
-    signals = all_signals[phase]
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.0 * n_rows),
+                             sharey=True)
+    axes_flat = axes.flatten() if n_mags > 1 else [axes]
 
-    if len(signals) == 0:
-        ax.set_title(f"{phase} (no trials)")
-        continue
+    for i, current_mag in enumerate(mag_levels_to_plot):
+        ax = axes_flat[i]
+        for phase in ["baseline", "aftereffect"]:
+            signals = signals_per_mag[current_mag][phase]
+            c = phase_color[phase]
+            for s in signals:
+                ax.plot(s["head_t"], s["head_yaw"], color=c, lw=1.5, alpha=0.9)
+                ax.plot(s["eye_t"], -s["eye_yaw"], color=c, lw=1.0, ls="--", alpha=0.7)
 
-    # plot every trial as one head line + one eye line.
-    # alpha = 0.6 so overlapping lines are still distinguishable.
-    c = phase_color[phase]
-    for s in signals:
-        ax.plot(s["head_t"], s["head_yaw"],
-                color=c, lw=1.2, alpha=0.6)
-        ax.plot(s["eye_t"], -s["eye_yaw"],
-                color=c, lw=1.0, ls="--", alpha=0.5)
+        ax.axhline(0, color="gray", lw=0.5)
+        ax.set_title(f"magnification = {current_mag}", fontsize=10)
+        ax.grid(alpha=0.3)
+        if i % n_cols == 0:
+            ax.set_ylabel("yaw (deg)")
+        if i >= n_mags - n_cols:
+            ax.set_xlabel("time within trial (s)")
 
-    # dummy lines for the legend (we don't want one entry per trial)
-    ax.plot([], [], color=c, lw=1.5, label=f"head ({phase})")
-    ax.plot([], [], color=c, lw=1.0, ls="--", label=f"-eye-in-head ({phase})")
+    # one legend for the whole figure, on the first subplot
+    axes_flat[0].plot([], [], color=phase_color["baseline"], lw=1.5, label="head (baseline)")
+    axes_flat[0].plot([], [], color=phase_color["baseline"], lw=1.0, ls="--", label="-eye-in-head (baseline)")
+    axes_flat[0].plot([], [], color=phase_color["aftereffect"], lw=1.5, label="head (aftereffect)")
+    axes_flat[0].plot([], [], color=phase_color["aftereffect"], lw=1.0, ls="--", label="-eye-in-head (aftereffect)")
+    axes_flat[0].legend(fontsize=7, loc="upper right")
 
-    ax.axhline(0, color="gray", lw=0.5)
-    ax.set_title(f"{phase}  ({len(signals)} trials)")
-    ax.set_xlabel("time within trial (s)")
-    ax.grid(alpha=0.3)
-    ax.legend(fontsize=9, loc="upper right")
+    # hide any extra empty subplots
+    for j in range(n_mags, len(axes_flat)):
+        axes_flat[j].axis("off")
 
-axes[0].set_ylabel("yaw (deg)")
+    fig.suptitle("Head yaw and (negated) eye-in-head yaw per magnification\n"
+                 "Savitzky-Golay smoothed, per-trial median offset removed",
+                 fontsize=11)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(f"{data_folder}/plot_overview_all_mags.png",
+                dpi=150, bbox_inches="tight")
+    plt.show()
 
-# clean string for filename
-selection_for_filename = trial_selection.replace(",", "_").replace("-", "to")
+else:
+    # single-mag mode: one figure with two subplots (baseline + aftereffect)
+    current_mag = chosen_mag
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
 
-fig.suptitle(f"Trials '{trial_selection}' at magnification = {chosen_mag}\n"
-             "Savitzky-Golay smoothed, per-trial median offset removed",
-             fontsize=11)
-plt.tight_layout(rect=[0, 0, 1, 0.95])
-plt.savefig(f"{data_folder}/plot_mag{chosen_mag}_trials_{selection_for_filename}.png",
-            dpi=150, bbox_inches="tight")
-plt.show()
+    for ax, phase in zip(axes, ["baseline", "aftereffect"]):
+        signals = signals_per_mag[current_mag][phase]
+        if len(signals) == 0:
+            ax.set_title(f"{phase} (no trials)")
+            continue
+
+        c = phase_color[phase]
+        for s in signals:
+            ax.plot(s["head_t"], s["head_yaw"], color=c, lw=1.2, alpha=0.6)
+            ax.plot(s["eye_t"], -s["eye_yaw"], color=c, lw=1.0, ls="--", alpha=0.5)
+
+        ax.plot([], [], color=c, lw=1.5, label=f"head ({phase})")
+        ax.plot([], [], color=c, lw=1.0, ls="--", label=f"-eye-in-head ({phase})")
+
+        ax.axhline(0, color="gray", lw=0.5)
+        ax.set_title(f"{phase}  ({len(signals)} trials)")
+        ax.set_xlabel("time within trial (s)")
+        ax.grid(alpha=0.3)
+        ax.legend(fontsize=9, loc="upper right")
+
+    axes[0].set_ylabel("yaw (deg)")
+
+    selection_for_filename = trial_selection.replace(",", "_").replace("-", "to")
+    title_text = f"Trials '{trial_selection}' at magnification = {current_mag}"
+    filename = f"plot_mag{current_mag}_trials_{selection_for_filename}.png"
+
+    fig.suptitle(title_text + "\nSavitzky-Golay smoothed, per-trial median offset removed",
+                 fontsize=11)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig(f"{data_folder}/{filename}", dpi=150, bbox_inches="tight")
+    plt.show()

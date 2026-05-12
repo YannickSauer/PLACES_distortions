@@ -159,21 +159,23 @@ def get_trial_signals(head_df, gaze_df, trial):
         return None
 
     head_t = h["unity_timestamp"].to_numpy() - t_start
-    h_yaw = head_yaw_deg(h)
-    h_yaw = smooth(h_yaw)
-    h_yaw = h_yaw - np.nanmedian(h_yaw)
+    h_yaw_raw = head_yaw_deg(h)
+    h_yaw_raw = smooth(h_yaw_raw)  # smoothed, but NOT median-subtracted
+    h_yaw = h_yaw_raw - np.nanmedian(h_yaw_raw)  # median-subtracted for plotting
 
     eye_t = g["unity_timestamp"].to_numpy() - t_start
-    e_yaw = eye_yaw_deg(g)
-    e_yaw = smooth(e_yaw)
-    e_yaw = e_yaw - np.nanmedian(e_yaw)
+    e_yaw_raw = eye_yaw_deg(g)
+    e_yaw_raw = smooth(e_yaw_raw)  # smoothed, but NOT median-subtracted
+    e_yaw = e_yaw_raw - np.nanmedian(e_yaw_raw)  # median-subtracted for plotting
 
     return {
         "trial": trial,
         "head_t": head_t,
-        "head_yaw": h_yaw,
+        "head_yaw": h_yaw,             # median-subtracted (for plots, peak detection)
+        "head_yaw_raw": h_yaw_raw,     # NOT median-subtracted (for lstsq fit)
         "eye_t": eye_t,
         "eye_yaw": e_yaw,
+        "eye_yaw_raw": e_yaw_raw,
     }
 
 
@@ -246,49 +248,61 @@ def get_amplitudes_paired(head_t, head_yaw, eye_t, eye_yaw, max_pair_distance_s=
     
     return float(np.mean(head_amps)), float(np.mean(eye_amps))
 
-def get_gain_lstsq(head_t, head_yaw, eye_t, eye_yaw):
+def get_gain_lstsq(head_t, head_yaw, eye_t, eye_yaw, subtract_median=False):
     """compute gain using a least-squares fit over all samples (not just peaks).
-    model: y_eye(t) = g * y_head(t) + s
-    where g is the gain and s is a residual spatial offset.
+    model: -y_eye(t) = g * y_head(t) + s
+    where g is the gain (slope) and s is the spatial offset (intercept).
     we fit g and s simultaneously so both are optimal.
-    
-    we negate eye because VOR moves opposite to head (so the slope is positive).
+
+    if subtract_median=True: medians are removed before the fit (legacy behaviour).
+    if subtract_median=False: s is estimated entirely by the fit (cleaner).
     """
     if len(head_t) < 5 or len(eye_t) < 5:
         return np.nan, np.nan
 
-    # interpolate eye onto the head time grid so we have one eye-value per head-sample
-    head_finite = np.isfinite(head_yaw)
-    eye_finite = np.isfinite(eye_yaw)
+    h_yaw = head_yaw.copy()
+    e_yaw = eye_yaw.copy()
+    if subtract_median:
+        h_yaw = h_yaw - np.nanmedian(h_yaw)
+        e_yaw = e_yaw - np.nanmedian(e_yaw)
+
+    # safety: make sure arrays have matching lengths (can drift if signals
+    # were clipped after smoothing)
+    n_head = min(len(head_t), len(h_yaw))
+    n_eye = min(len(eye_t), len(e_yaw))
+    head_t = head_t[:n_head]
+    h_yaw = h_yaw[:n_head]
+    eye_t = eye_t[:n_eye]
+    e_yaw = e_yaw[:n_eye]
+
+    head_finite = np.isfinite(h_yaw)
+    eye_finite = np.isfinite(e_yaw)
     if head_finite.sum() < 5 or eye_finite.sum() < 5:
         return np.nan, np.nan
 
-    # only keep head samples that fall within the eye time range
     valid = (head_t >= eye_t[eye_finite][0]) & (head_t <= eye_t[eye_finite][-1])
     if valid.sum() < 5:
         return np.nan, np.nan
 
     h_t_valid = head_t[valid]
-    h_yaw_valid = head_yaw[valid]
-    
-    # interpolate eye onto head time
-    e_yaw_on_head = np.interp(h_t_valid, eye_t[eye_finite], eye_yaw[eye_finite])
+    h_yaw_valid = h_yaw[valid]
+    e_yaw_on_head = np.interp(h_t_valid, eye_t[eye_finite], e_yaw[eye_finite])
 
-    # remove samples where head_yaw is too small to be reliable
-    # (avoids fitting noise during near-zero head movement)
-    big_enough = np.abs(h_yaw_valid) > 1.0  # at least 1 deg head movement
+    # filter to samples where head movement is big enough to be reliable.
+    # we look at "deviation from median" so this filter still makes sense
+    # whether or not we subtracted the median earlier.
+    h_centered = h_yaw_valid - np.nanmedian(h_yaw_valid)
+    big_enough = np.abs(h_centered) > 1.0
     if big_enough.sum() < 5:
         return np.nan, np.nan
 
     h = h_yaw_valid[big_enough]
-    e = -e_yaw_on_head[big_enough]  # negate eye because VOR is opposite
+    e = -e_yaw_on_head[big_enough]
 
-    # least-squares fit: e = g * h + s
-    # build matrix A = [h, 1] so that A @ [g, s] = e
     A = np.vstack([h, np.ones_like(h)]).T
     result, *_ = np.linalg.lstsq(A, e, rcond=None)
     g, s = result[0], result[1]
-    
+
     return float(g), float(s)
            
 
@@ -337,13 +351,17 @@ for phase, s in all_trial_signals:
     valid = (s["eye_t"] >= t_start_valid) & (s["eye_t"] <= s["head_t"][-1])
     s["eye_t"] = s["eye_t"][valid]
     s["eye_yaw"] = s["eye_yaw"][valid]
+    s["eye_yaw_raw"] = s["eye_yaw_raw"][valid]  # apply same clipping to raw
 
     # method 1 (paired peak matching): one head-amp and one eye-amp per trial
     head_amp, eye_amp = get_amplitudes_paired(s["head_t"], s["head_yaw"], s["eye_t"], s["eye_yaw"])
 
-    # method 2 (least-squares over all samples): fit y_eye = g * y_head + s
-    # gives a gain directly, using all samples not just peaks
-    gain_lstsq, offset_lstsq = get_gain_lstsq(s["head_t"], s["head_yaw"], s["eye_t"], s["eye_yaw"])
+    # method 2 (least-squares): fit -y_eye = g * y_head + s over all samples.
+    # we use the raw signals (without median-subtraction) so that the offset s
+    # is fully estimated by the fit, as suggested by the supervisor.
+    gain_lstsq, offset_lstsq = get_gain_lstsq(
+        s["head_t"], s["head_yaw_raw"], s["eye_t"], s["eye_yaw_raw"],
+        subtract_median=False)
 
     amplitude_rows.append({
         "phase": phase,
@@ -361,6 +379,74 @@ amp_df = pd.DataFrame(amplitude_rows)
 amp_df.to_csv(f"{data_folder}/amplitudes.csv", index=False)
 print(f"\nsaved {data_folder}/amplitudes.csv with {len(amp_df)} rows")
 
+# Plot 1: example trial showing the lstsq fit on sample-pairs
+# we pick one mag=1.0 baseline trial as a clean illustration
+example_signal = None
+for phase, sig in all_trial_signals:
+    if phase == "baseline" and abs(sig["trial"]["magnification"] - 1.0) < 0.001:
+        example_signal = sig
+        break
+
+if example_signal is not None:
+    # compute the fit for this example using raw signals (no median subtraction)
+    g_fit, s_fit = get_gain_lstsq(
+        example_signal["head_t"], example_signal["head_yaw_raw"],
+        example_signal["eye_t"], example_signal["eye_yaw_raw"],
+        subtract_median=False)
+
+    # build the same sample-pair scatter the fit uses
+    h_t = example_signal["head_t"]
+    h_yaw = example_signal["head_yaw_raw"]
+    e_t = example_signal["eye_t"]
+    e_yaw = example_signal["eye_yaw_raw"]
+
+    # safety: arrays may have drifted in length due to earlier clipping
+    n_head = min(len(h_t), len(h_yaw))
+    n_eye = min(len(e_t), len(e_yaw))
+    h_t = h_t[:n_head]
+    h_yaw = h_yaw[:n_head]
+    e_t = e_t[:n_eye]
+    e_yaw = e_yaw[:n_eye]
+
+    eye_finite = np.isfinite(e_yaw)
+    valid_h = (h_t >= e_t[eye_finite][0]) & (h_t <= e_t[eye_finite][-1])
+    h_t_v = h_t[valid_h]
+    h_yaw_v = h_yaw[valid_h]
+    e_on_h = np.interp(h_t_v, e_t[eye_finite], e_yaw[eye_finite])
+
+    # we plot ALL points (no filter on |h| > 1), but the fit uses only the
+    # filtered ones - the fit line is identical either way
+    fig_ex, ax_ex = plt.subplots(figsize=(7, 7))
+    ax_ex.scatter(h_yaw_v, -e_on_h, alpha=0.5, s=25, color="purple",
+                  edgecolor="none", label=f"sample-pairs (n={len(h_yaw_v)})")
+
+    # the fit line: y = g_fit * x + s_fit
+    x_range = np.array([h_yaw_v.min() - 2, h_yaw_v.max() + 2])
+    y_line = g_fit * x_range + s_fit
+    ax_ex.plot(x_range, y_line, color="red", lw=2.5,
+               label=f"lstsq fit: y = {g_fit:.3f} · x + {s_fit:.2f}")
+
+    # reference: diagonal y=x (perfect VOR)
+    diag_range = np.array([min(x_range[0], -25), max(x_range[1], 25)])
+    ax_ex.plot(diag_range, diag_range, color="black", ls=":", lw=1,
+               label="perfect VOR (gain = 1, offset = 0)")
+
+    ax_ex.axhline(0, color="gray", lw=0.5)
+    ax_ex.axvline(0, color="gray", lw=0.5)
+    ax_ex.set_xlabel("head yaw (deg)")
+    ax_ex.set_ylabel("-eye yaw (deg)")
+    ax_ex.set_title(f"Plot 1: example trial — sample-pairs and lstsq fit\n"
+                    f"(baseline, mag = {example_signal['trial']['magnification']}, "
+                    f"trial {example_signal['trial']['trial_idx']})\n"
+                    f"gain = {g_fit:.3f}, offset = {s_fit:.2f}")
+    ax_ex.legend(loc="upper left", fontsize=9)
+    ax_ex.grid(alpha=0.3)
+    ax_ex.set_aspect("equal", adjustable="box")
+    plt.tight_layout()
+    plt.savefig(f"{data_folder}/plot1_lstsq_example.png", dpi=150, bbox_inches="tight")
+    print(f"saved {data_folder}/plot1_lstsq_example.png")
+    plt.show()
+
 # print comparison of the two gain methods
 print(f"\n*** gain comparison (paired-peaks vs least-squares) ***")
 print(f"{'phase':>12}  {'gain_paired':>12}  {'gain_lstsq':>12}  {'difference':>12}")
@@ -371,6 +457,30 @@ for phase in ["baseline", "aftereffect"]:
     g_lstsq = sub["gain_lstsq"].mean()
     diff = g_lstsq - g_paired
     print(f"{phase:>12}  {g_paired:>12.3f}  {g_lstsq:>12.3f}  {diff:>+12.3f}")
+
+# also compare: lstsq WITH vs WITHOUT pre-median subtraction
+# (this tests whether removing median first matters)
+print(f"\n*** lstsq sensitivity: with vs without pre-median subtraction ***")
+print(f"{'phase':>12}  {'no-median':>12}  {'with-median':>12}  {'diff':>12}")
+print("-" * 55)
+for phase in ["baseline", "aftereffect"]:
+    sub_signals = [s for ph, s in all_trial_signals if ph == phase]
+    gains_no_med = []
+    gains_with_med = []
+    for sig in sub_signals:
+        g_no, _ = get_gain_lstsq(sig["head_t"], sig["head_yaw_raw"],
+                                 sig["eye_t"], sig["eye_yaw_raw"],
+                                 subtract_median=False)
+        g_with, _ = get_gain_lstsq(sig["head_t"], sig["head_yaw_raw"],
+                                   sig["eye_t"], sig["eye_yaw_raw"],
+                                   subtract_median=True)
+        if not np.isnan(g_no):
+            gains_no_med.append(g_no)
+        if not np.isnan(g_with):
+            gains_with_med.append(g_with)
+    g_no_m = np.mean(gains_no_med)
+    g_with_m = np.mean(gains_with_med)
+    print(f"{phase:>12}  {g_no_m:>12.3f}  {g_with_m:>12.3f}  {g_no_m - g_with_m:>+12.3f}")
 
 
 # plot 
@@ -389,44 +499,38 @@ norm = plt.Normalize(1.0 - span, 1.0 + span)
 for ax, phase in zip(axes, ["baseline", "aftereffect"]):
     sub = amp_df[(amp_df["phase"] == phase)].dropna()
 
-    # one scatter call per magnification level so the colors are correct
+    # one scatter call per magnification level so the colors are correct.
+    # no labels — the magnification is shown via the colorbar on the right,
+    # so labelling each level here would just duplicate that information.
     for mag in mags:
         pts = sub[sub["magnification"] == mag]
         if pts.empty:
             continue
         ax.scatter(pts["head_amp"], pts["eye_amp"],
                    color=cmap(norm(mag)), s=70,
-                   edgecolor="black", linewidth=0.5,
-                   label=f"{mag}")
+                   edgecolor="black", linewidth=0.5)
 
     # diagonal y = x: theoretical line for perfect VOR (gain = 1)
     if not sub.empty:
         hi = float(np.nanmax([sub["head_amp"].max(), sub["eye_amp"].max()]) * 1.1)
         ax.plot([0, hi], [0, hi], color="black", lw=1, ls=":", label="gain = 1 (perfect VOR)")
 
-        # regression line for trials with mag < 1 (world made smaller).
-        # we force the line through the origin (no intercept) because at zero
-        # head movement there should be zero eye movement. the slope of this
-        # line is then the average gain for the mag<1 trials.
+        # for the regression lines, we now use the mean of the lstsq-gain per group.
+        # this matches what's reported as the main gain method.
         sub_low = sub[sub["magnification"] < 1.0]
         if len(sub_low) >= 2:
-            x = sub_low["head_amp"].to_numpy()
-            y = sub_low["eye_amp"].to_numpy()
-            # least-squares slope through origin: slope = sum(x*y) / sum(x*x)
-            slope_low = np.sum(x * y) / np.sum(x * x)
+            slope_low = sub_low["gain_lstsq"].mean()
             ax.plot([0, hi], [0, slope_low * hi],
                     color="blue", lw=1.5, ls="--",
-                    label=f"mag<1 fit (slope={slope_low:.2f})")
+                    label=f"mag<1 mean gain_lstsq = {slope_low:.2f}")
 
         # regression line for trials with mag > 1 (world made larger)
         sub_high = sub[sub["magnification"] > 1.0]
         if len(sub_high) >= 2:
-            x = sub_high["head_amp"].to_numpy()
-            y = sub_high["eye_amp"].to_numpy()
-            slope_high = np.sum(x * y) / np.sum(x * x)
+            slope_high = sub_high["gain_lstsq"].mean()
             ax.plot([0, hi], [0, slope_high * hi],
                     color="red", lw=1.5, ls="--",
-                    label=f"mag>1 fit (slope={slope_high:.2f})")
+                    label=f"mag>1 mean gain_lstsq = {slope_high:.2f}")
 
     ax.set_title(phase)
     ax.set_xlabel("head amplitude (deg)")
@@ -447,66 +551,3 @@ fig.suptitle("Eye-in-head vs head amplitude per trial\n"
              fontsize=11)
 plt.savefig(f"{data_folder}/plot2_amplitudes.png", dpi=150, bbox_inches="tight")
 plt.show()
-
-# bonus: print a table comparing different Savitzky-Golay windows.
-print("\n*** window comparison ***")
-print("(amplitudes recomputed with different smoothing windows)")
-print(f"{'window':>8} {'ms':>6}  {'gain-base':>10} {'gain-after':>10}")
-print("-" * 40)
-
-WINDOWS_TO_COMPARE = [9, 13, 15, 17, 21, 31]
-SAMPLING_RATE_HZ = 90  # vive pro eye runs at display refresh rate (90 Hz)
-
-# step 1: cache raw signals for each trial (no smoothing yet, no delay applied)
-# we re-load the csvs once per phase here, then build raw signals per trial
-raw_cache = []  # list of (phase, trial, head_t, head_yaw_raw, eye_t_raw, eye_yaw_raw)
-for phase in ["baseline", "aftereffect"]:
-    head_df = load_head(f"{data_folder}/{phase}_head.csv")
-    gaze_df = load_gaze(f"{data_folder}/{phase}_gaze.csv")
-    trials = parse_trials(head_df, phase)
-    for tr in trials:
-        h = head_df[(head_df["unity_timestamp"] >= tr["t_start"]) &
-                    (head_df["unity_timestamp"] <= tr["t_stop"])]
-        g = gaze_df[(gaze_df["unity_timestamp"] >= tr["t_start"]) &
-                    (gaze_df["unity_timestamp"] <= tr["t_stop"])]
-        if len(h) < 30 or len(g) < 30:
-            continue
-        head_t = h["unity_timestamp"].to_numpy() - tr["t_start"]
-        h_yaw_raw = head_yaw_deg(h)
-        eye_t = g["unity_timestamp"].to_numpy() - tr["t_start"]
-        e_yaw_raw = eye_yaw_deg(g)
-        raw_cache.append((phase, tr, head_t, h_yaw_raw, eye_t, e_yaw_raw))
-
-# step 2: for each window, smooth the cached signals and compute gains
-for win in WINDOWS_TO_COMPARE:
-    base_gains, after_gains = [], []
-    for phase, tr, head_t, h_yaw_raw, eye_t_raw, e_yaw_raw in raw_cache:
-        # temporarily change SAVGOL_WINDOW for the smooth() function
-        SAVGOL_WINDOW_save = SAVGOL_WINDOW
-        globals()["SAVGOL_WINDOW"] = win
-
-        h_yaw = smooth(h_yaw_raw)
-        h_yaw = h_yaw - np.nanmedian(h_yaw)
-        e_yaw = smooth(e_yaw_raw)
-        e_yaw = e_yaw - np.nanmedian(e_yaw)
-
-        globals()["SAVGOL_WINDOW"] = SAVGOL_WINDOW_save
-
-        # apply global delay and clip to valid time window
-        eye_t = eye_t_raw + global_median_delay
-        EYE_WARMUP_MS = 200
-        t_start_valid = head_t[0] + EYE_WARMUP_MS / 1000.0
-        valid = (eye_t >= t_start_valid) & (eye_t <= head_t[-1])
-        eye_t = eye_t[valid]
-        e_yaw = e_yaw[valid]
-
-        h_amp, e_amp = get_amplitudes_paired(head_t, h_yaw, eye_t, e_yaw)
-        if not np.isnan(h_amp) and h_amp > 0 and not np.isnan(e_amp):
-            gain = e_amp / h_amp
-            if phase == "baseline":
-                base_gains.append(gain)
-            else:
-                after_gains.append(gain)
-
-    win_ms = win * 1000.0 / SAMPLING_RATE_HZ
-    print(f"{win:>8} {win_ms:>6.0f}  {np.mean(base_gains):>10.3f} {np.mean(after_gains):>10.3f}")
