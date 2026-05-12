@@ -10,10 +10,8 @@ from the swimtest / balloon game experiment.
   with regression lines for mag<1 and mag>1
 - `delay_histogram.py` — histogram of cross-correlation delays across all trials
 - `delay_vs_mag.py` — delay as a function of magnification level
-- `gain_across_phases.py` — VOR gain over time across baseline top-ups,
   adaptation phase, and aftereffect top-ups
 - `saccade_analysis.py` — saccade detection and amplitude comparison across phases
-- `adaptation_phase.py` — gain over time during the 19-min adaptation phase
 
 ## Usage
 
@@ -26,4 +24,4 @@ python script_name.py path/to/data/folder
 - Savitzky-Golay smoothing: window=15, polyorder=3 (≈167 ms at 90 Hz)
 - Cross-correlation delay: global median = -77 ms (used to align eye and head)
 - Sampling rate: 90 Hz (Vive Pro Eye + SRanipal SDK)
-- Amplitude calculation: paired peak matching (head and eye peaks paired by time)
+- Amplitude calculation: least square method
