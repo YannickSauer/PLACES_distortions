@@ -415,6 +415,7 @@ GameObject:
   - component: {fileID: 807878718}
   - component: {fileID: 807878719}
   - component: {fileID: 807878720}
+  - component: {fileID: 807878721}
   m_Layer: 0
   m_Name: SceneTestManager
   m_TagString: SceneTestManager
@@ -646,6 +647,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3e39a487be3edb49ab1014b83ec5abc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &807878721
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807878715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9cfb71c932c7954bbb48c3f0f1026c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fixationToleranceDeg: 7
+  onlyDuringTrials: 1
 --- !u!1 &1089105820
 GameObject:
   m_ObjectHideFlags: 0

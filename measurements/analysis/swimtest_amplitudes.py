@@ -303,7 +303,15 @@ def get_gain_lstsq(head_t, head_yaw, eye_t, eye_yaw, subtract_median=False):
     result, *_ = np.linalg.lstsq(A, e, rcond=None)
     g, s = result[0], result[1]
 
-    return float(g), float(s)
+    # compute R² (coefficient of determination) to quantify fit quality.
+    # R² = 1 - SS_residual / SS_total
+    # close to 1 = points lie nicely on the line, close to 0 = fit is poor
+    e_predicted = g * h + s
+    ss_residual = np.sum((e - e_predicted) ** 2)
+    ss_total = np.sum((e - np.mean(e)) ** 2)
+    r_squared = 1.0 - (ss_residual / ss_total) if ss_total > 0 else np.nan
+
+    return float(g), float(s), float(r_squared)
            
 
 
@@ -358,8 +366,8 @@ for phase, s in all_trial_signals:
 
     # method 2 (least-squares): fit -y_eye = g * y_head + s over all samples.
     # we use the raw signals (without median-subtraction) so that the offset s
-    # is fully estimated by the fit, as suggested by the supervisor.
-    gain_lstsq, offset_lstsq = get_gain_lstsq(
+    # is fully estimated by the fit. R² tells us how well the fit matches.
+    gain_lstsq, offset_lstsq, r_squared_lstsq = get_gain_lstsq(
         s["head_t"], s["head_yaw_raw"], s["eye_t"], s["eye_yaw_raw"],
         subtract_median=False)
 
@@ -372,6 +380,7 @@ for phase, s in all_trial_signals:
         "gain_paired": eye_amp / head_amp if head_amp and head_amp > 0 else np.nan,
         "gain_lstsq": gain_lstsq,
         "offset_lstsq": offset_lstsq,
+        "r_squared": r_squared_lstsq,
     })
 
 # put everything in a dataframe and save it for later use
@@ -379,20 +388,35 @@ amp_df = pd.DataFrame(amplitude_rows)
 amp_df.to_csv(f"{data_folder}/amplitudes.csv", index=False)
 print(f"\nsaved {data_folder}/amplitudes.csv with {len(amp_df)} rows")
 
-# Plot 1: example trial showing the lstsq fit on sample-pairs
-# we pick one mag=1.0 baseline trial as a clean illustration
+# Plot 1: example trial showing the lstsq fit on sample-pairs.
+# change these three lines to pick a different example trial:
+EXAMPLE_PHASE = "baseline"       
+EXAMPLE_MAG = 1                
+EXAMPLE_TRIAL_NUMBER = 2          
+
+# collect all trials matching phase + mag (in order)
+matching_trials = [sig for phase, sig in all_trial_signals
+                   if phase == EXAMPLE_PHASE
+                   and abs(sig["trial"]["magnification"] - EXAMPLE_MAG) < 0.001]
+
 example_signal = None
-for phase, sig in all_trial_signals:
-    if phase == "baseline" and abs(sig["trial"]["magnification"] - 1.0) < 0.001:
-        example_signal = sig
-        break
+if len(matching_trials) == 0:
+    print(f"\nWARNING: no trials found for {EXAMPLE_PHASE}, mag={EXAMPLE_MAG}")
+elif EXAMPLE_TRIAL_NUMBER < 1 or EXAMPLE_TRIAL_NUMBER > len(matching_trials):
+    print(f"\nWARNING: only {len(matching_trials)} trials available "
+          f"for {EXAMPLE_PHASE}, mag={EXAMPLE_MAG}. "
+          f"Pick EXAMPLE_TRIAL_NUMBER between 1 and {len(matching_trials)}.")
+else:
+    example_signal = matching_trials[EXAMPLE_TRIAL_NUMBER - 1]
+    print(f"\nPlot 1: using trial #{EXAMPLE_TRIAL_NUMBER} of {len(matching_trials)} "
+          f"matching trials ({EXAMPLE_PHASE}, mag={EXAMPLE_MAG})")
 
 if example_signal is not None:
     # compute the fit for this example using raw signals (no median subtraction)
-    g_fit, s_fit = get_gain_lstsq(
-        example_signal["head_t"], example_signal["head_yaw_raw"],
-        example_signal["eye_t"], example_signal["eye_yaw_raw"],
-        subtract_median=False)
+    g_fit, s_fit, r2_fit = get_gain_lstsq(
+    example_signal["head_t"], example_signal["head_yaw_raw"],
+    example_signal["eye_t"], example_signal["eye_yaw_raw"],
+    subtract_median=False)
 
     # build the same sample-pair scatter the fit uses
     h_t = example_signal["head_t"]
@@ -436,9 +460,9 @@ if example_signal is not None:
     ax_ex.set_xlabel("head yaw (deg)")
     ax_ex.set_ylabel("-eye yaw (deg)")
     ax_ex.set_title(f"Plot 1: example trial — sample-pairs and lstsq fit\n"
-                    f"(baseline, mag = {example_signal['trial']['magnification']}, "
-                    f"trial {example_signal['trial']['trial_idx']})\n"
-                    f"gain = {g_fit:.3f}, offset = {s_fit:.2f}")
+                f"({EXAMPLE_PHASE}, mag = {example_signal['trial']['magnification']}, "
+                f"trial #{EXAMPLE_TRIAL_NUMBER} of {len(matching_trials)})\n"
+                f"gain = {g_fit:.3f}, offset = {s_fit:.2f}, R² = {r2_fit:.3f}")
     ax_ex.legend(loc="upper left", fontsize=9)
     ax_ex.grid(alpha=0.3)
     ax_ex.set_aspect("equal", adjustable="box")
@@ -458,96 +482,57 @@ for phase in ["baseline", "aftereffect"]:
     diff = g_lstsq - g_paired
     print(f"{phase:>12}  {g_paired:>12.3f}  {g_lstsq:>12.3f}  {diff:>+12.3f}")
 
-# also compare: lstsq WITH vs WITHOUT pre-median subtraction
-# (this tests whether removing median first matters)
-print(f"\n*** lstsq sensitivity: with vs without pre-median subtraction ***")
-print(f"{'phase':>12}  {'no-median':>12}  {'with-median':>12}  {'diff':>12}")
-print("-" * 55)
+# plot 2: gain vs magnification
+# we filter out trials with poor fit quality (low R²) — these are usually
+# trials where the participant didn't fixate properly, so the lstsq fit
+# can't find a meaningful relationship between head and eye.
+R_SQUARED_THRESHOLD = 0.9   # trials below this are excluded, can be adjusted
+
+# report how many trials are excluded
+n_total = len(amp_df.dropna(subset=["gain_lstsq", "r_squared"]))
+n_excluded = (amp_df["r_squared"] < R_SQUARED_THRESHOLD).sum()
+print(f"\nfiltering trials with R² < {R_SQUARED_THRESHOLD}: "
+      f"excluding {n_excluded} of {n_total} trials")
+
+fig, ax = plt.subplots(figsize=(9, 6))
+
+phase_color = {"baseline": "darkblue", "aftereffect": "orange"}
+
 for phase in ["baseline", "aftereffect"]:
-    sub_signals = [s for ph, s in all_trial_signals if ph == phase]
-    gains_no_med = []
-    gains_with_med = []
-    for sig in sub_signals:
-        g_no, _ = get_gain_lstsq(sig["head_t"], sig["head_yaw_raw"],
-                                 sig["eye_t"], sig["eye_yaw_raw"],
-                                 subtract_median=False)
-        g_with, _ = get_gain_lstsq(sig["head_t"], sig["head_yaw_raw"],
-                                   sig["eye_t"], sig["eye_yaw_raw"],
-                                   subtract_median=True)
-        if not np.isnan(g_no):
-            gains_no_med.append(g_no)
-        if not np.isnan(g_with):
-            gains_with_med.append(g_with)
-    g_no_m = np.mean(gains_no_med)
-    g_with_m = np.mean(gains_with_med)
-    print(f"{phase:>12}  {g_no_m:>12.3f}  {g_with_m:>12.3f}  {g_no_m - g_with_m:>+12.3f}")
+    sub = amp_df[amp_df["phase"] == phase].dropna(subset=["gain_lstsq"])
+    sub = sub[sub["r_squared"] >= R_SQUARED_THRESHOLD]
+    c = phase_color[phase]
 
+    # compute mean gain for mag<1 and mag>1 subgroups
+    mean_low = sub[sub["magnification"] < 1.0]["gain_lstsq"].mean()
+    mean_high = sub[sub["magnification"] > 1.0]["gain_lstsq"].mean()
 
-# plot 
+    # individual trials as transparent dots
+    ax.scatter(sub["magnification"], sub["gain_lstsq"],
+               color=c, alpha=0.4, s=40, edgecolor="none",
+               label=f"individual trials ({phase})")
 
-fig, axes = plt.subplots(1, 2, figsize=(12, 5.5), sharex=True, sharey=True)
+    # mean per mag level, connected with a line.
+    # include mag<1 and mag>1 means in the legend label for quick reference.
+    mags = sorted(sub["magnification"].unique())
+    means = [sub[sub["magnification"] == mag]["gain_lstsq"].mean() for mag in mags]
+    ax.plot(mags, means, color=c, lw=2,
+            marker="o", markersize=8,
+            label=f"mean per mag ({phase}) - "
+                  f"mag<1: {mean_low:.3f}, mag>1: {mean_high:.3f}")
 
-# colormap centered on mag = 1.0
-# coolwarm: blue = below 1.0, white = 1.0, red = above 1.0
-mags = sorted(amp_df["magnification"].unique())
-cmap = plt.get_cmap("coolwarm")
-mag_min, mag_max = min(mags), max(mags)
-span = max(abs(mag_max - 1.0), abs(mag_min - 1.0))
-norm = plt.Normalize(1.0 - span, 1.0 + span)
+# reference lines
+ax.axhline(1.0, color="black", ls=":", lw=1, label="gain = 1 (perfect VOR)")
+ax.axvline(1.0, color="gray", ls=":", lw=0.5)
 
-# loop over phases (one subplot each)
-for ax, phase in zip(axes, ["baseline", "aftereffect"]):
-    sub = amp_df[(amp_df["phase"] == phase)].dropna()
-
-    # one scatter call per magnification level so the colors are correct.
-    # no labels — the magnification is shown via the colorbar on the right,
-    # so labelling each level here would just duplicate that information.
-    for mag in mags:
-        pts = sub[sub["magnification"] == mag]
-        if pts.empty:
-            continue
-        ax.scatter(pts["head_amp"], pts["eye_amp"],
-                   color=cmap(norm(mag)), s=70,
-                   edgecolor="black", linewidth=0.5)
-
-    # diagonal y = x: theoretical line for perfect VOR (gain = 1)
-    if not sub.empty:
-        hi = float(np.nanmax([sub["head_amp"].max(), sub["eye_amp"].max()]) * 1.1)
-        ax.plot([0, hi], [0, hi], color="black", lw=1, ls=":", label="gain = 1 (perfect VOR)")
-
-        # for the regression lines, we now use the mean of the lstsq-gain per group.
-        # this matches what's reported as the main gain method.
-        sub_low = sub[sub["magnification"] < 1.0]
-        if len(sub_low) >= 2:
-            slope_low = sub_low["gain_lstsq"].mean()
-            ax.plot([0, hi], [0, slope_low * hi],
-                    color="blue", lw=1.5, ls="--",
-                    label=f"mag<1 mean gain_lstsq = {slope_low:.2f}")
-
-        # regression line for trials with mag > 1 (world made larger)
-        sub_high = sub[sub["magnification"] > 1.0]
-        if len(sub_high) >= 2:
-            slope_high = sub_high["gain_lstsq"].mean()
-            ax.plot([0, hi], [0, slope_high * hi],
-                    color="red", lw=1.5, ls="--",
-                    label=f"mag>1 mean gain_lstsq = {slope_high:.2f}")
-
-    ax.set_title(phase)
-    ax.set_xlabel("head amplitude (deg)")
-    ax.grid(alpha=0.3)
-    ax.set_aspect("equal", adjustable="box")
-    ax.legend(fontsize=8, loc="lower right")
-
-axes[0].set_ylabel("eye-in-head amplitude (deg)")
-
-# colorbar on the right showing the magnification scale
-sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-sm.set_array([])
-cbar = fig.colorbar(sm, ax=axes, shrink=0.85, pad=0.02)
-cbar.set_label("magnification")
-
-fig.suptitle("Eye-in-head vs head amplitude per trial\n"
-             "points on the dotted diagonal = perfect compensation (gain = 1)",
+ax.set_xlabel("magnification")
+ax.set_ylabel("VOR gain (lstsq)")
+ax.set_title("VOR gain (least-squares method) vs magnification level\n"
+             "baseline (blue) vs aftereffect (orange)",
              fontsize=11)
-plt.savefig(f"{data_folder}/plot2_amplitudes.png", dpi=150, bbox_inches="tight")
+ax.grid(alpha=0.3)
+ax.legend(loc="best", fontsize=9)
+
+plt.tight_layout()
+plt.savefig(f"{data_folder}/plot2_gain_vs_mag.png", dpi=150, bbox_inches="tight")
 plt.show()
