@@ -5,7 +5,7 @@ clear; close all; clc;
 
 
 %% load data
-csv_path = "D:\TolgaDaniskan\PLACES_distortions\measurements\7_2605081228\answers.csv";
+csv_path = "D:\TolgaDaniskan\PLACES_distortions\measurements\sonyad\answers.csv";
 T = readtable(csv_path);
 fprintf('trials: %d\n', height(T));
 
@@ -28,6 +28,25 @@ base_params = fitPF(T(T.phase=="baseline",:), PF);
 
 fprintf('\n--- Aftereffect ---\n');
 after_params = fitPF(T(T.phase=="aftereffect",:), PF);
+
+% after base_params = fitPF(...) and after_params = fitPF(...)
+ID = 11;   % subject id 
+row = { sprintf('ID_%d', ID), ...
+    base_params(1), base_params(3), (base_params(1)+base_params(3))/2, base_params(3)-base_params(1), ...
+    after_params(1), after_params(3), (after_params(1)+after_params(3))/2, after_params(3)-after_params(1), ...
+    after_params(1)-base_params(1), after_params(3)-base_params(3), ...
+    (after_params(1)+after_params(3))/2-(base_params(1)+base_params(3))/2 };
+
+fname = 'group_pse.csv';
+vn = {'pid','base_pse_lo','base_pse_hi','base_centre','base_width', ...
+    'aft_pse_lo','aft_pse_hi','aft_centre','aft_width', ...
+    'd_pse_lo','d_pse_hi','d_centre'};
+Trow = cell2table(row, 'VariableNames', vn);
+if isfile(fname)
+    writetable(Trow, fname, 'WriteMode','append', 'WriteVariableNames', false);
+else
+    writetable(Trow, fname);   %
+end
 
 
 
@@ -52,30 +71,34 @@ fprintf('  lapse             = %.4f\n', after_params(5));
 
 
 %% plot
-figure('Position', [100 100 900 600]);
+figure('Position', [100 100 1100 600]);   % breiter machen
 hold on;
 
 x_smooth = linspace(0.78, 1.22, 300);
 
 % baseline
 [mags_b, props_b, ~] = aggregate(T(T.phase=="baseline",:));
-plot(mags_b, props_b, 'o', 'Color', [0 0 0.55], 'MarkerSize', 9, ...
-    'MarkerFaceColor', [0 0 0.55]);
+h_b_data = plot(mags_b, props_b, 'o', 'Color', [0 0 0.55], 'MarkerSize', 9, ...
+    'MarkerFaceColor', [0 0 0.55], 'DisplayName', 'baseline (data)');
 y_b = PF(base_params, x_smooth);
-plot(x_smooth, y_b, '-', 'Color', [0 0 0.55], 'LineWidth', 2);
-xline(base_params(1), ':', 'Color', [0 0 0.55]);
-xline(base_params(3), ':', 'Color', [0 0 0.55]);
+h_b_fit = plot(x_smooth, y_b, '-', 'Color', [0 0 0.55], 'LineWidth', 2, ...
+    'DisplayName', sprintf('baseline fit (PSE_{lo}=%.3f, PSE_{hi}=%.3f)', ...
+                           base_params(1), base_params(3)));
+xl1 = xline(base_params(1), ':', 'Color', [0 0 0.55]); xl1.HandleVisibility = 'off';
+xl2 = xline(base_params(3), ':', 'Color', [0 0 0.55]); xl2.HandleVisibility = 'off';
 
 % aftereffect
 [mags_a, props_a, ~] = aggregate(T(T.phase=="aftereffect",:));
-plot(mags_a, props_a, 's', 'Color', [1 0.5 0], 'MarkerSize', 9, ...
-    'MarkerFaceColor', [1 0.5 0]);
+h_a_data = plot(mags_a, props_a, 's', 'Color', [1 0.5 0], 'MarkerSize', 9, ...
+    'MarkerFaceColor', [1 0.5 0], 'DisplayName', 'aftereffect (data)');
 y_a = PF(after_params, x_smooth);
-plot(x_smooth, y_a, '-', 'Color', [1 0.5 0], 'LineWidth', 2);
-xline(after_params(1), ':', 'Color', [1 0.5 0]);
-xline(after_params(3), ':', 'Color', [1 0.5 0]);
+h_a_fit = plot(x_smooth, y_a, '-', 'Color', [1 0.5 0], 'LineWidth', 2, ...
+    'DisplayName', sprintf('aftereffect fit (PSE_{lo}=%.3f, PSE_{hi}=%.3f)', ...
+                           after_params(1), after_params(3)));
+xl3 = xline(after_params(1), ':', 'Color', [1 0.5 0]); xl3.HandleVisibility = 'off';
+xl4 = xline(after_params(3), ':', 'Color', [1 0.5 0]); xl4.HandleVisibility = 'off';
 
-xline(1.0, '--', 'Color', [0.5 0.5 0.5]);
+xl5 = xline(1.0, '--', 'Color', [0.5 0.5 0.5], 'DisplayName', 'mag = 1.0 (veridical)');
 
 xlabel('Magnification level');
 ylabel('P(response = stable)');
@@ -85,17 +108,11 @@ ylim([-0.05 1.1]);
 grid on;
 grid minor;
 
-legend({...
-    'baseline (data)', ...
-    sprintf('baseline fit (PSE_{lo}=%.3f, PSE_{hi}=%.3f)', base_params(1), base_params(3)), ...
-    '', '', ...
-    'aftereffect (data)', ...
-    sprintf('aftereffect fit (PSE_{lo}=%.3f, PSE_{hi}=%.3f)', after_params(1), after_params(3)), ...
-    '', '', ...
-    'mag = 1.0 (veridical)'}, ...
-    'Location', 'northeast', 'FontSize', 9);
+% legend not in the plot -> right field
+legend([h_b_data, h_b_fit, h_a_data, h_a_fit, xl5], ...
+    'Location', 'eastoutside', 'FontSize', 9);
 
-saveas(gcf, 'psychometric_palamedes.png');
+saveas(gcf, 'psychometric_palamedes_ID_8.png');
 
 
 %% --- helper functions ---

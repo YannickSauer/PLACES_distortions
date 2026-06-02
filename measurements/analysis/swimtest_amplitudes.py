@@ -486,7 +486,7 @@ for phase in ["baseline", "aftereffect"]:
 # we filter out trials with poor fit quality (low R²) — these are usually
 # trials where the participant didn't fixate properly, so the lstsq fit
 # can't find a meaningful relationship between head and eye.
-R_SQUARED_THRESHOLD = 0.9   # trials below this are excluded, can be adjusted
+R_SQUARED_THRESHOLD = 0.8   # trials below this are excluded, can be adjusted
 
 # report how many trials are excluded
 n_total = len(amp_df.dropna(subset=["gain_lstsq", "r_squared"]))
@@ -528,7 +528,8 @@ ax.axvline(1.0, color="gray", ls=":", lw=0.5)
 ax.set_xlabel("magnification")
 ax.set_ylabel("VOR gain (lstsq)")
 ax.set_title("VOR gain (least-squares method) vs magnification level\n"
-             "baseline (blue) vs aftereffect (orange)",
+             "baseline (blue) vs aftereffect (orange)\n"
+             f"only trials with R² ≥ {R_SQUARED_THRESHOLD} included",
              fontsize=11)
 ax.grid(alpha=0.3)
 ax.legend(loc="best", fontsize=9)

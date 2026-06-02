@@ -1092,30 +1092,23 @@ public class SwimTest : MonoBehaviour
             UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
         spectatorOverlayObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
-        GameObject bg = new GameObject("BG");
-        bg.transform.SetParent(spectatorOverlayObj.transform, false);
-        var bgImg = bg.AddComponent<UnityEngine.UI.Image>();
-        bgImg.color = new Color(0f, 0f, 0f, 0.7f);
-        RectTransform bgRT = bg.GetComponent<RectTransform>();
-        bgRT.anchorMin = new Vector2(0f, 1f);
-        bgRT.anchorMax = new Vector2(0f, 1f);
-        bgRT.pivot = new Vector2(0f, 1f);
-        bgRT.anchoredPosition = new Vector2(20f, -20f);
-        bgRT.sizeDelta = new Vector2(520f, 110f);
-
         GameObject txt = new GameObject("Text");
-        txt.transform.SetParent(bg.transform, false);
+        txt.transform.SetParent(spectatorOverlayObj.transform, false);
         spectatorTrialText = txt.AddComponent<TextMeshProUGUI>();
         spectatorTrialText.text = "";
         spectatorTrialText.fontSize = 32;
         spectatorTrialText.color = Color.white;
         spectatorTrialText.alignment = TextAlignmentOptions.TopLeft;
         spectatorTrialText.enableWordWrapping = false;
+        spectatorTrialText.fontStyle = FontStyles.Bold;
+        spectatorTrialText.outlineWidth = 0.25f;
+        spectatorTrialText.outlineColor = Color.black;
         RectTransform txtRT = spectatorTrialText.GetComponent<RectTransform>();
-        txtRT.anchorMin = Vector2.zero;
-        txtRT.anchorMax = Vector2.one;
-        txtRT.offsetMin = new Vector2(15f, 10f);
-        txtRT.offsetMax = new Vector2(-15f, -10f);
+        txtRT.anchorMin = new Vector2(0f, 1f);
+        txtRT.anchorMax = new Vector2(0f, 1f);
+        txtRT.pivot = new Vector2(0f, 1f);
+        txtRT.anchoredPosition = new Vector2(20f, -20f);
+        txtRT.sizeDelta = new Vector2(520f, 110f);
 
         DontDestroyOnLoad(spectatorOverlayObj);
     }
