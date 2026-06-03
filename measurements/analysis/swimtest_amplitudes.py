@@ -182,11 +182,9 @@ def get_trial_signals(head_df, gaze_df, trial):
 # amplitude extraction 
 
 def get_amplitude(t, x):
-    """
-    detect all peaks (maxima and minima) in the signal and return the mean
-    of their absolute values.
-    one number per trial = one point in the scatter plot.
-    """
+    # detect all peaks (maxima and minima) in the signal and return the mean
+    # of their absolute values.
+    
     if len(t) < 5 or np.all(np.isnan(x)):
         return []
 
@@ -253,9 +251,6 @@ def get_gain_lstsq(head_t, head_yaw, eye_t, eye_yaw, subtract_median=False):
     model: -y_eye(t) = g * y_head(t) + s
     where g is the gain (slope) and s is the spatial offset (intercept).
     we fit g and s simultaneously so both are optimal.
-
-    if subtract_median=True: medians are removed before the fit (legacy behaviour).
-    if subtract_median=False: s is estimated entirely by the fit (cleaner).
     """
     if len(head_t) < 5 or len(eye_t) < 5:
         return np.nan, np.nan
@@ -334,8 +329,7 @@ for phase in ["baseline", "aftereffect"]:
             all_trial_signals.append((phase, s))
 
 # step B: measure delay for every trial, then take ONE global median across all
-# trials and both phases. the eye-tracker delay is a hardware property and
-# doesn't depend on magnification or phase, so a single global value is cleanest.
+# trials and both phases. 
 print("\n--- computing global delay ---")
 all_delays = []
 for phase, s in all_trial_signals:
@@ -459,7 +453,7 @@ if example_signal is not None:
     ax_ex.axvline(0, color="gray", lw=0.5)
     ax_ex.set_xlabel("head yaw (deg)")
     ax_ex.set_ylabel("-eye yaw (deg)")
-    ax_ex.set_title(f"Plot 1: example trial — sample-pairs and lstsq fit\n"
+    ax_ex.set_title(f"Plot 1: example trial: sample-pairs and lstsq fit\n"
                 f"({EXAMPLE_PHASE}, mag = {example_signal['trial']['magnification']}, "
                 f"trial #{EXAMPLE_TRIAL_NUMBER} of {len(matching_trials)})\n"
                 f"gain = {g_fit:.3f}, offset = {s_fit:.2f}, R² = {r2_fit:.3f}")
@@ -486,7 +480,7 @@ for phase in ["baseline", "aftereffect"]:
 # we filter out trials with poor fit quality (low R²) — these are usually
 # trials where the participant didn't fixate properly, so the lstsq fit
 # can't find a meaningful relationship between head and eye.
-R_SQUARED_THRESHOLD = 0.8   # trials below this are excluded, can be adjusted
+R_SQUARED_THRESHOLD = 0.6   # trials below this are excluded, can be adjusted
 
 # report how many trials are excluded
 n_total = len(amp_df.dropna(subset=["gain_lstsq", "r_squared"]))
