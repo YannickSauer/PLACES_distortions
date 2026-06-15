@@ -336,8 +336,9 @@ public class AdaptationTask : MonoBehaviour
         // Log to eye tracker: balloon was missed (grew too big without being shot)
         string color = b.groupId == 0 ? "green" : "blue";
         Vector3 pos = b.transform.position;
+        float timeAlive = Time.time - b.spawnTime; // seconds from spawn to natural pop
         EyeTrackingToolbox.Instance?.WriteMessage(
-            $"BalloonMissed,{color},score={score},pos_x={pos.x:F3},pos_y={pos.y:F3},pos_z={pos.z:F3}");
+            $"BalloonMissed,{color},score={score},time_alive={timeAlive:F3},pos_x={pos.x:F3},pos_y={pos.y:F3},pos_z={pos.z:F3}");
 
         // spawn a new balloon in the same group
         if (inRound)
@@ -385,8 +386,9 @@ public class AdaptationTask : MonoBehaviour
         // Log to eye tracker: balloon shot down (groupId 0 = green/target, 1 = blue/distractor)
         string color = b.groupId == 0 ? "green" : "blue";
         Vector3 pos = b.transform.position;
+        float timeAlive = Time.time - b.spawnTime; // seconds from spawn to pop
         EyeTrackingToolbox.Instance?.WriteMessage(
-            $"BalloonPopped,{color},points={points},score={score},pos_x={pos.x:F3},pos_y={pos.y:F3},pos_z={pos.z:F3}");
+            $"BalloonPopped,{color},points={points},score={score},time_alive={timeAlive:F3},pos_x={pos.x:F3},pos_y={pos.y:F3},pos_z={pos.z:F3}");
 
         // spawn a new balloon in the same group
         if (inRound)

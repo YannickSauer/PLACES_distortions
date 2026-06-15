@@ -24,9 +24,11 @@ public class Balloon : MonoBehaviour
 
     private float growSpeed; // individual grow speed
     private bool isActive = true;
+    public float spawnTime { get; private set; } // Time.time when this balloon was spawned
 
     void Start()
     {
+        spawnTime = Time.time; // record the spawn time of the balloon
         growSpeed = UnityEngine.Random.Range(minGrowSpeed, maxGrowSpeed);
         if (UnityEngine.Random.value < movingProbability)
         {

@@ -73,7 +73,6 @@ Assets/
 │   ├── SwimTest.cs                    # Head-Movement stability test
 │   ├── Distortions.cs                 # Magnification / radial distortion shader 
 │   └── ...
-controller
 │   ├── DotManager.cs                  # Random-dot generation & projection
 │   ├── EyeTrackingToolbox.cs          # Eye-tracking interface
 │   ├── ViveEyeTracker.cs              # Vive-specific implementation
@@ -114,13 +113,13 @@ The project uses two keyboard shortcuts in the Unity Editor (Play Mode):
 
 1. **Welcome** — instruction text on a wall in VR (when pressing `T` or `Space`)
 2. **Training** — practice the adaptation task and learn the rhythmic head-shake timing
-4. **Pre-baseline** — adaptation scene *without* distortions
-5. **Baseline blocks** — head-movement stability judgments under various distortion levels, with top-ups in between (no distortions) 
-6. **Adaptation phase** — balloon game *with* distortions enabled
-7. **Aftereffect blocks** — head-movement stability judgments under various distortion levels, with top-ups in between (distortions)
-8. **End screen** 
+3. **Pre-baseline** — adaptation scene *without* distortions
+4. **Baseline blocks** — head-movement stability judgments under various distortion levels, with top-ups in between (no distortions) 
+5. **Adaptation phase** — balloon game *with* distortions enabled
+6. **Aftereffect blocks** — head-movement stability judgments under various distortion levels, with top-ups in between (distortions)
+7. **End screen** 
 
-Total duration: approx. **7 minutes**.
+Total duration: approx. **50 minutes**.
 
 ### Controls (Vive controller, during participant tasks)
 
@@ -210,7 +209,39 @@ Containing:
 | `adaptation_gaze.csv` / `_head.csv` | Same, for the adaptation phase                                  |
 | `aftereffect_gaze.csv` / `_head.csv` | Same, for the aftereffect blocks                               |
 
-Each gaze CSV contains 28 columns: timestamps, eye openness, pupil diameter, eye origin (xyz), gaze direction (xyz), per eye + combined, plus gaze distance.
+Each gaze CSV contains: timestamps (Unity + eye-tracker device), validity, eye openness,
+pupil diameter, eye origin (xyz) and gaze direction (xyz) for left/right/combined eyes,
+gaze distance, and a final **`messages`** column.
+
+Each head CSV contains: timestamps, tracked-object pose (position xyz + rotation
+quaternion) for each tracked object, and a final **`messages`** column.
+
+
+### Event messages (in the `messages` column)
+
+Both head and gaze CSVs carry a `messages` column. Most rows are empty; event rows
+contain a marker with the same `unity_timestamp` in both files, so events can be matched
+to either stream.
+
+**SwimTest trial markers:**
+StartTrial_<phase>_t<trial>_mag<magnification>rad<radial>
+StopTrial<phase>t<trial>
+StartSwimBlock<phase>round<n>  /  StopSwimBlock<phase>round<n>
+StartTopUp<phase>round<n>      /  StopTopUp<phase>_round<n>
+
+**Balloon-game events** (logged during pre-baseline, baseline top-ups, adaptation, and
+aftereffect top-ups):
+BalloonPopped,<green|blue>,points=<n>,score=<n>,time_alive=<s>,pos_x=<x>,pos_y=<y>,pos_z=<z>
+BalloonMissed,<green|blue>,score=<n>,time_alive=<s>,pos_x=<x>,pos_y=<y>,pos_z=<z>
+
+- `green` = target balloon (+1, or +3 if popped quickly), `blue` = distractor (−5)
+- `time_alive` = seconds from spawn to pop/miss
+- `pos_x/y/z` = balloon world position at the moment of pop/miss
+
+> **Scene setup note:** In the Adaptation scene the `Gun` object is parented under the
+> `XRRig` so it follows recentering. Its renderers and collider are auto-disabled outside
+> the Adaptation scene (handled in `GunController`), so the controller laser/dot does not
+> appear in SwimTest and does not interfere with random-dot projection.
 
 ---
 
