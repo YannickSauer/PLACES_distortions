@@ -60,7 +60,8 @@ public class EyeTrackingToolbox : MonoBehaviour
     private string objectTrackingFile; // output file for object tracking (bound to framerate)
     private string gazeTrackingFile; // output file for eye tracking data (bound to eye tracking frequency)
     Queue trackingDataQueue = new Queue();
-    static string msgBuffer = "";
+    static string msgBufferHead = "";
+    static string msgBufferGaze = "";
 
     private bool isObjectRecording = true;
     public bool isRecording {get; private set;} = false;
@@ -372,6 +373,7 @@ public class EyeTrackingToolbox : MonoBehaviour
         header += "combined_eye_origin.x,combined_eye_origin.y,combined_eye_origin.z,";
         header += "combined_eye_gaze.x,combined_eye_gaze.y,combined_eye_gaze.z,";
         header += "gaze_distance,";
+        header += "messages,";
 
         sw.WriteLine(header);
         sw.Close();
@@ -379,7 +381,8 @@ public class EyeTrackingToolbox : MonoBehaviour
 
     public void WriteMessage(string msg)
     {
-        msgBuffer = msg;
+        msgBufferHead = msg;
+        msgBufferGaze = msg;
     }
 
     // Reusable StringBuilder for gaze data, allocated once (reduces GC pressure at 120Hz)
@@ -411,6 +414,18 @@ public class EyeTrackingToolbox : MonoBehaviour
         AppendVector3(gazeStringBuilder, gazeDataSample.combinedRayLocal.origin, ci);
         AppendVector3(gazeStringBuilder, gazeDataSample.combinedRayLocal.direction, ci);
         gazeStringBuilder.Append(gazeDataSample.gazeDistance.ToString("F10", ci)).Append(',');
+
+        // Append buffered message (or empty cell) - mirrors the head-tracking logic
+        // so both CSVs have a 'messages' column with consistent field counts.
+        if (!String.IsNullOrEmpty(msgBufferGaze))
+        {
+            gazeStringBuilder.Append(msgBufferGaze).Append(',');
+            msgBufferGaze = "";
+        }
+        else
+        {
+            gazeStringBuilder.Append(','); // empty message cell
+        }
 
         return gazeStringBuilder.ToString();
     }
@@ -479,14 +494,14 @@ public class EyeTrackingToolbox : MonoBehaviour
 
         // Buffered message, always append the column (empty or with message)
         // so that every row has the same number of fields (fixes CSV inconsistency).
-        if (!String.IsNullOrEmpty(msgBuffer))
+        if (!String.IsNullOrEmpty(msgBufferHead))
         {
-            reusableStringBuilder.Append(msgBuffer).Append(',');
-            msgBuffer = "";
+            reusableStringBuilder.Append(msgBufferHead).Append(',');
+            msgBufferHead = "";
         }
         else
         {
-            reusableStringBuilder.Append(','); // empty message cell to keep column count consistent
+            reusableStringBuilder.Append(',');
         }
         queue.Enqueue(reusableStringBuilder.ToString());
     }

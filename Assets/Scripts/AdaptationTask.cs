@@ -33,6 +33,8 @@ public class AdaptationTask : MonoBehaviour
     public float roundTime = 120f; // in seconds; duration of one round
     public int roundCounter = 0; // counter for the current round
     public int totalRounds = 0;
+    [HideInInspector] public int topUpRoundNumber = 0; // current top-up round number (0 = not a topup phase)
+    [HideInInspector] public int topUpTotalRounds = 0; // total number of top-ups expected for this phase
     [HideInInspector] public List<float> highScores = new List<float>();
     [HideInInspector] public float roundTimer = 0f; // timer for the current round
     [HideInInspector] public bool inRound = false; // flag to check if we are in a round
@@ -331,6 +333,12 @@ public class AdaptationTask : MonoBehaviour
         // The participant didn't actively do anything wrong - they just missed it.
         // No score change, no points popup, no explosion particle effect.
 
+        // Log to eye tracker: balloon was missed (grew too big without being shot)
+        string color = b.groupId == 0 ? "green" : "blue";
+        Vector3 pos = b.transform.position;
+        EyeTrackingToolbox.Instance?.WriteMessage(
+            $"BalloonMissed,{color},score={score},pos_x={pos.x:F3},pos_y={pos.y:F3},pos_z={pos.z:F3}");
+
         // spawn a new balloon in the same group
         if (inRound)
         {
@@ -373,6 +381,13 @@ public class AdaptationTask : MonoBehaviour
         }
         score += points;
         SpawnPoints(b.transform.position, points);
+
+        // Log to eye tracker: balloon shot down (groupId 0 = green/target, 1 = blue/distractor)
+        string color = b.groupId == 0 ? "green" : "blue";
+        Vector3 pos = b.transform.position;
+        EyeTrackingToolbox.Instance?.WriteMessage(
+            $"BalloonPopped,{color},points={points},score={score},pos_x={pos.x:F3},pos_y={pos.y:F3},pos_z={pos.z:F3}");
+
         // spawn a new balloon in the same group
         if (inRound)
         {

@@ -1,0 +1,8 @@
+StartTopUp_baseline_round0,
+BalloonPopped,green,points=1,score=1,pos_x=1.964,pos_y=0.727,pos_z=0.206,
+BalloonPopped,green,points=1,score=2,pos_x=2.254,pos_y=1.593,pos_z=0.215,
+BalloonMissed,green,score=2,pos_x=-2.445,pos_y=0.884,pos_z=1.681,
+BalloonMissed,blue,score=2,pos_x=2.091,pos_y=1.810,pos_z=1.714,
+
+StartTopUp_baseline_round1,
+BalloonPopped,green,points=1,score=1,pos_x=0.256,pos_y=0.809,pos_z=1.479,

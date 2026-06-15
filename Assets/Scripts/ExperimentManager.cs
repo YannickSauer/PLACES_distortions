@@ -230,6 +230,9 @@ public class ExperimentManager : MonoBehaviour
         // //  SWIM EFFECT SCENE // //
         // switch to swim scene and run topupFrequency trials without distortions as baseline measurement for the swim effect
         eyeTracker?.StartRecording("baseline");
+        // Total expected top-ups = number of swim-trial blocks - 1 (no top-up after the last block).
+        // E.g. 56 trials with topupFrequency=6 → 10 blocks → 9 top-ups.
+        int totalTopUpsBaseline = Mathf.Max(0, Mathf.CeilToInt((float)aftereffectData.nTrials / aftereffectSettings.topupFrequency) - 1);
         int roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
         {
@@ -241,7 +244,7 @@ public class ExperimentManager : MonoBehaviour
             eyeTracker?.WriteMessage("StopSwimBlock_baseline_round" + roundCounter);
             if (aftereffectData.currentTrial >= aftereffectData.nTrials) break;
             eyeTracker?.WriteMessage("StartTopUp_baseline_round" + roundCounter);
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0));
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0, roundCounter + 1, totalTopUpsBaseline));
             eyeTracker?.WriteMessage("StopTopUp_baseline_round" + roundCounter);
             roundCounter++;
         }
@@ -282,7 +285,7 @@ public class ExperimentManager : MonoBehaviour
 
         // create new trial parameters
         aftereffectData = new AftereffectData(aftereffectSettings);
-
+        int totalTopUpsAftereffect = Mathf.Max(0, Mathf.CeilToInt((float)aftereffectData.nTrials / aftereffectSettings.topupFrequency) - 1);
         eyeTracker?.StartRecording("aftereffect");
         roundCounter = 0;
         while (aftereffectData.currentTrial < aftereffectData.nTrials) // repeat until all trials are done
@@ -299,7 +302,7 @@ public class ExperimentManager : MonoBehaviour
             // return to adaptation scene for top-up with distortions
             distortions.active = true;
             eyeTracker?.WriteMessage("StartTopUp_aftereffect_round" + roundCounter);
-            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0));
+            yield return StartCoroutine(AdaptationPhase(adaptationPhaseSettings.topUpDuration, 0, roundCounter + 1, totalTopUpsAftereffect));
             eyeTracker?.WriteMessage("StopTopUp_aftereffect_round" + roundCounter);
             roundCounter++;
         }
@@ -329,7 +332,8 @@ public class ExperimentManager : MonoBehaviour
 #endif
     }
 
-    private IEnumerator AdaptationPhase(float adaptationDuration, int roundCounter)
+    // topUpNumber/topUpTotal are optional: if > 0 the AdaptationTask shows "TopUp: X/Y" instead of "Round: X/Y".
+    private IEnumerator AdaptationPhase(float adaptationDuration, int roundCounter, int topUpNumber = 0, int topUpTotal = 0)
     {
         yield return StartCoroutine(SwitchScene(adaptationPhaseSettings.sceneName)); // switch to adaptation scene
 
@@ -356,6 +360,8 @@ public class ExperimentManager : MonoBehaviour
 
         testManager.roundCounter = roundCounter;
         testManager.canPlayAgain = true;
+        testManager.topUpRoundNumber = topUpNumber;
+        testManager.topUpTotalRounds = topUpTotal;
         // when duration shorter than roundtime, only play one round with the shortened time, otherwise calculate how many rounds fit into the adaptation duration and set that in the test manager
         float originalRoundTime = testManager.roundTime;
         if (adaptationDuration < testManager.roundTime)

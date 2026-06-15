@@ -216,7 +216,15 @@ public class DisplayInformation : MonoBehaviour
         {
             if (adaptationTask.inRound)
             {
-                scoreText.text = "Round: " + adaptationTask.roundCounter + "/" + adaptationTask.totalRounds + "\nScore: " + adaptationTask.score;
+                // Show TopUp counter (e.g. "TopUp 3/11") if this is a top-up phase, otherwise normal Round counter.
+                if (adaptationTask.topUpTotalRounds > 0)
+                {
+                    scoreText.text = "TopUp: " + adaptationTask.topUpRoundNumber + "/" + adaptationTask.topUpTotalRounds + "\nScore: " + adaptationTask.score;
+                }
+                else
+                {
+                    scoreText.text = "Round: " + adaptationTask.roundCounter + "/" + adaptationTask.totalRounds + "\nScore: " + adaptationTask.score;
+                }
             }
             else
             {
