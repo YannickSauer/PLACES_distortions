@@ -231,8 +231,11 @@ StartTopUp<phase>round<n>      /  StopTopUp<phase>_round<n>
 
 **Balloon-game events** (logged during pre-baseline, baseline top-ups, adaptation, and
 aftereffect top-ups):
+
+```
 BalloonPopped,<green|blue>,points=<n>,score=<n>,time_alive=<s>,pos_x=<x>,pos_y=<y>,pos_z=<z>
 BalloonMissed,<green|blue>,score=<n>,time_alive=<s>,pos_x=<x>,pos_y=<y>,pos_z=<z>
+```
 
 - `green` = target balloon (+1, or +3 if popped quickly), `blue` = distractor (−5)
 - `time_alive` = seconds from spawn to pop/miss
